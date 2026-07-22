@@ -1,21 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
-import { PackageOpen } from "lucide-react";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { PackageOpen, PenLine } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
 import type { PostCard as PostCardType } from "../../../shared/types";
 import PostCard from "../components/PostCard";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 
+const sorts = new Set(["latest", "oldest", "wanted"]);
+
 export default function ItemsPage() {
-  const [sort, setSort] = useState("latest");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedSort = searchParams.get("sort") ?? "latest";
+  const sort = sorts.has(requestedSort) ? requestedSort : "latest";
   const { user } = useAuth();
   const { t } = useLanguage();
   const query = useQuery({
     queryKey: ["posts", sort],
     queryFn: () => api<{ posts: PostCardType[] }>(`/api/posts?sort=${sort}&pageSize=24`),
   });
+  const publishPath = user ? "/posts/new" : "/register?next=/posts/new";
 
   return (
     <section className="page-shell py-12 sm:py-16">
@@ -30,7 +34,7 @@ export default function ItemsPage() {
           <select
             className="field !w-auto !rounded-full !py-2"
             value={sort}
-            onChange={(event) => setSort(event.target.value)}
+            onChange={(event) => setSearchParams({ sort: event.target.value }, { replace: true })}
           >
             <option value="latest">{t("sortLatest")}</option>
             <option value="oldest">{t("sortOldest")}</option>
@@ -54,7 +58,7 @@ export default function ItemsPage() {
           <PackageOpen className="mx-auto text-sage-300" size={48} />
           <h2 className="mt-5 text-xl font-semibold">{t("emptyTitle")}</h2>
           <p className="mt-2 text-ink-700">{t("emptyDescription")}</p>
-          <Link to={user ? "/posts/new" : "/register"} className="btn-primary mt-6">
+          <Link to={publishPath} className="btn-primary mt-6">
             {t("publishFirst")}
           </Link>
         </div>
@@ -67,6 +71,16 @@ export default function ItemsPage() {
           ))}
         </div>
       )}
+
+      <Link
+        to={publishPath}
+        className="fixed right-4 z-40 inline-flex min-h-14 items-center gap-2 rounded-full bg-sage-600 px-5 py-3 font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-sage-700 focus:outline-none focus:ring-4 focus:ring-sage-200 sm:right-8"
+        style={{ bottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+        aria-label={t("floatingPost")}
+      >
+        <PenLine size={20} />
+        <span>{t("floatingPost")}</span>
+      </Link>
     </section>
   );
 }
