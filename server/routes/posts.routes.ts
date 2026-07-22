@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { postImages, posts, postWants } from "../../shared/schema.js";
+import { postImages, posts } from "../../shared/schema.js";
 import { createPostSchema, updatePostSchema } from "../../shared/validation.js";
 import { optionalAuth, requireAuth } from "../auth.js";
 import { db, pool } from "../db.js";
@@ -266,29 +266,67 @@ router.post("/:id/want", optionalAuth, async (req, res) => {
   if (!post) throw new AppError(404, "POST_NOT_FOUND", "找不到這篇貼文");
 
   const anonId = getOrCreateAnonId(req, res);
-  if (req.user) {
-    await db.insert(postWants).values({ userId: req.user.id, postId }).onConflictDoNothing();
-  } else {
-    await pool.query(
-      "INSERT INTO post_wants (anon_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-      [anonId, postId],
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    if (req.user) {
+      await client.query(
+        "DELETE FROM post_wants WHERE post_id = $1 AND anon_id = $2",
+        [postId, anonId],
+      );
+      await client.query(
+        "INSERT INTO post_wants (user_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        [req.user.id, postId],
+      );
+    } else {
+      await client.query(
+        "INSERT INTO post_wants (anon_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+        [anonId, postId],
+      );
+    }
+    const count = await client.query<{ count: string }>(
+      "SELECT COUNT(*)::text AS count FROM post_wants WHERE post_id = $1",
+      [postId],
     );
+    await client.query("COMMIT");
+    res.status(201).json({ wanted: true, wantCount: Number(count.rows[0]?.count ?? 0) });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
-  res.status(201).json({ wanted: true });
 });
 
 router.delete("/:id/want", optionalAuth, async (req, res) => {
   const postId = Number(req.params.id);
   const anonId = getOrCreateAnonId(req, res);
-  if (req.user) {
-    await db.delete(postWants).where(and(eq(postWants.userId, req.user.id), eq(postWants.postId, postId)));
-  } else {
-    await pool.query(
-      "DELETE FROM post_wants WHERE anon_id = $1 AND post_id = $2",
-      [anonId, postId],
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    if (req.user) {
+      await client.query(
+        "DELETE FROM post_wants WHERE post_id = $1 AND (user_id = $2 OR anon_id = $3)",
+        [postId, req.user.id, anonId],
+      );
+    } else {
+      await client.query(
+        "DELETE FROM post_wants WHERE post_id = $1 AND anon_id = $2",
+        [postId, anonId],
+      );
+    }
+    const count = await client.query<{ count: string }>(
+      "SELECT COUNT(*)::text AS count FROM post_wants WHERE post_id = $1",
+      [postId],
     );
+    await client.query("COMMIT");
+    res.json({ wanted: false, wantCount: Number(count.rows[0]?.count ?? 0) });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
   }
-  res.status(204).end();
 });
 
 export default router;
