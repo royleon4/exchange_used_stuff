@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { ImagePlus, Trash2 } from "lucide-react";
-import { useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import type { PublicSiteSettings } from "../../../shared/types";
 import { api, ApiError } from "../lib/api";
 
@@ -27,6 +27,25 @@ type Props = {
 
 export default function HomeHeroImageEditor({ settings, labels, onSettingsChange, onSaved }: Props) {
   const [error, setError] = useState("");
+  const settingsRef = useRef(settings);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  async function applyImageSettings(nextSettings: PublicSiteSettings, message: string) {
+    setError("");
+
+    // Refresh the shared settings first, then restore any text the administrator
+    // is still editing locally. Only the image fields should change here.
+    await onSaved(message);
+    onSettingsChange({
+      ...settingsRef.current,
+      homeHeroImageId: nextSettings.homeHeroImageId,
+      homeHeroImageUrl: nextSettings.homeHeroImageUrl,
+      updatedAt: nextSettings.updatedAt,
+    });
+  }
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -44,11 +63,7 @@ export default function HomeHeroImageEditor({ settings, labels, onSettingsChange
         body: JSON.stringify({ homeHeroImageId: image.id }),
       });
     },
-    onSuccess: async ({ settings: nextSettings }) => {
-      setError("");
-      onSettingsChange(nextSettings);
-      await onSaved(labels.saved);
-    },
+    onSuccess: ({ settings: nextSettings }) => applyImageSettings(nextSettings, labels.saved),
     onError: (value) => setError(value instanceof ApiError ? value.message : labels.failed),
   });
 
@@ -57,11 +72,7 @@ export default function HomeHeroImageEditor({ settings, labels, onSettingsChange
       method: "PATCH",
       body: JSON.stringify({ homeHeroImageId: null }),
     }),
-    onSuccess: async ({ settings: nextSettings }) => {
-      setError("");
-      onSettingsChange(nextSettings);
-      await onSaved(labels.removed);
-    },
+    onSuccess: ({ settings: nextSettings }) => applyImageSettings(nextSettings, labels.removed),
     onError: (value) => setError(value instanceof ApiError ? value.message : labels.failed),
   });
 
