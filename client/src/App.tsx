@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
+import ScrollRestoration from "./components/ScrollRestoration";
 import HomePage from "./pages/HomePage";
 import ItemsPage from "./pages/ItemsPage";
 import LoginPage from "./pages/LoginPage";
@@ -13,19 +14,22 @@ import NotFoundPage from "./pages/NotFoundPage";
 
 export default function App() {
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<HomePage />} />
-        <Route path="items" element={<ItemsPage />} />
-        <Route path="login" element={<LoginPage />} />
-        <Route path="register" element={<RegisterPage />} />
-        <Route path="posts/new" element={<NewPostPage />} />
-        <Route path="posts/:id" element={<PostDetailPage />} />
-        <Route path="posts/:id/edit" element={<EditPostPage />} />
-        <Route path="me" element={<MePage />} />
-        <Route path="admin" element={<AdminPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Route>
-    </Routes>
+    <>
+      <ScrollRestoration />
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="items" element={<ItemsPage />} />
+          <Route path="login" element={<LoginPage />} />
+          <Route path="register" element={<RegisterPage />} />
+          <Route path="posts/new" element={<NewPostPage />} />
+          <Route path="posts/:id" element={<PostDetailPage />} />
+          <Route path="posts/:id/edit" element={<EditPostPage />} />
+          <Route path="me" element={<MePage />} />
+          <Route path="admin" element={<AdminPage />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </>
   );
 }
