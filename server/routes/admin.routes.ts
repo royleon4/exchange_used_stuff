@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { and, eq, ne } from "drizzle-orm";
-import { comments, posts, siteSettings, users } from "../../shared/schema.js";
+import { comments, imageCleanupJobs, postImages, posts, siteSettings, users } from "../../shared/schema.js";
 import {
   adminPostUpdateSchema,
   adminSiteSettingsSchema,
@@ -177,13 +177,42 @@ router.get("/posts", async (_req, res) => {
 router.patch("/posts/:id", async (req, res) => {
   const id = positiveId(req.params.id);
   const input = adminPostUpdateSchema.parse(req.body);
+
+  if (input.moderationStatus === "deleted") {
+    const deleted = await db.transaction(async (tx) => {
+      const [target] = await tx.select({ id: posts.id }).from(posts).where(eq(posts.id, id)).limit(1);
+      if (!target) return null;
+
+      const images = await tx
+        .select({ driveFileId: postImages.driveFileId })
+        .from(postImages)
+        .where(eq(postImages.postId, id));
+
+      if (images.length > 0) {
+        await tx.insert(imageCleanupJobs).values(
+          images.map((image) => ({
+            driveFileId: image.driveFileId,
+            reason: `admin_deleted_post:${id}`,
+          })),
+        );
+      }
+
+      const [removed] = await tx.delete(posts).where(eq(posts.id, id)).returning({ id: posts.id });
+      return removed ?? null;
+    });
+
+    if (!deleted) throw new AppError(404, "POST_NOT_FOUND", "找不到貼文");
+    res.json({ deleted: true, id: deleted.id });
+    return;
+  }
+
   const changes: {
     title?: string;
     description?: string;
     itemStatus?: "considering" | "bringing" | "not_bringing" | "closed";
     commentsEnabled?: boolean;
-    moderationStatus?: "visible" | "hidden" | "deleted";
-    deletedAt?: Date | null;
+    moderationStatus?: "visible" | "hidden";
+    deletedAt?: null;
     updatedAt: Date;
   } = { updatedAt: new Date() };
 
@@ -193,7 +222,7 @@ router.patch("/posts/:id", async (req, res) => {
   if (input.commentsEnabled !== undefined) changes.commentsEnabled = input.commentsEnabled;
   if (input.moderationStatus !== undefined) {
     changes.moderationStatus = input.moderationStatus;
-    changes.deletedAt = input.moderationStatus === "deleted" ? new Date() : null;
+    changes.deletedAt = null;
   }
 
   const [post] = await db.update(posts).set(changes).where(eq(posts.id, id)).returning();
