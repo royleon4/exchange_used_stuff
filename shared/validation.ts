@@ -49,13 +49,12 @@ export const itemStatusSchema = z.enum([
 export const moderationStatusSchema = z.enum(["visible", "hidden", "deleted"]);
 export const userRoleSchema = z.enum(["user", "admin"]);
 
+const postTitleSchema = z.string().trim().min(3, "標題至少 3 個字").max(40, "標題最多 40 個字");
+const postDescriptionSchema = z.string().trim();
+
 export const createPostSchema = z.object({
-  title: z.string().trim().min(2, "標題至少 2 個字").max(40, "標題最多 40 個字"),
-  description: z
-    .string()
-    .trim()
-    .min(10, "描述至少 10 個字")
-    .max(500, "描述最多 500 個字"),
+  title: postTitleSchema,
+  description: postDescriptionSchema.default(""),
   commentsEnabled: z.boolean().default(true),
   itemStatus: itemStatusSchema.default("considering"),
   imageIds: z.array(z.number().int().positive()).min(1, "至少需要 1 張圖片").max(9, "最多 9 張圖片"),
@@ -77,8 +76,8 @@ export const adminUserUpdateSchema = z
 
 export const adminPostUpdateSchema = z
   .object({
-    title: z.string().trim().min(2, "標題至少 2 個字").max(40, "標題最多 40 個字").optional(),
-    description: z.string().trim().min(10, "描述至少 10 個字").max(500, "描述最多 500 個字").optional(),
+    title: postTitleSchema.optional(),
+    description: postDescriptionSchema.optional(),
     commentsEnabled: z.boolean().optional(),
     itemStatus: itemStatusSchema.optional(),
     moderationStatus: moderationStatusSchema.optional(),
