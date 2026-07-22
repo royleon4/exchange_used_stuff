@@ -24,7 +24,7 @@ export default function HomePage() {
           <p className="mt-7 max-w-2xl text-base leading-8 text-ink-700 sm:text-lg">{description}</p>
         </div>
 
-        <div className="mt-10 grid gap-4 lg:grid-cols-2">
+        <div className="mt-12 grid gap-4 lg:grid-cols-2">
           <Link
             to={user ? "/posts/new" : "/register?next=/posts/new"}
             className="group flex min-h-28 items-center gap-4 rounded-[2rem] bg-sage-600 px-5 py-5 text-left text-white shadow-lg shadow-sage-600/20 transition duration-200 hover:-translate-y-1 hover:bg-sage-700 hover:shadow-xl focus-visible:-translate-y-1 sm:min-h-32 sm:gap-5 sm:px-7 sm:py-6"
