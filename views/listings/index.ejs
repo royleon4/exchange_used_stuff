@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse Listings — SwapShop</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <%- include('../partials/nav') %>
+  <main class="main-content">
+    <%- include('../partials/flash') %>
+
+    <div class="hero">
+      <h1>Find something great.<br>Pass it on.</h1>
+      <p>Browse free giveaways and affordable second-hand items from your community.</p>
+    </div>
+
+    <div class="filters-bar">
+      <form method="GET" action="/listings" class="filters-form">
+        <input type="text" name="search" placeholder="Search listings…" value="<%= search %>" class="search-input" />
+        <select name="type" class="select-input">
+          <option value="">All types</option>
+          <option value="give_away" <%= type === 'give_away' ? 'selected' : '' %>>Free / Give Away</option>
+          <option value="sell" <%= type === 'sell' ? 'selected' : '' %>>For Sale</option>
+        </select>
+        <select name="sort" class="select-input">
+          <option value="newest" <%= sort === 'newest' ? 'selected' : '' %>>Newest first</option>
+          <option value="oldest" <%= sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
+        </select>
+        <button type="submit" class="btn btn-secondary">Filter</button>
+        <% if (search || type) { %>
+          <a href="/listings" class="btn btn-ghost">Clear</a>
+        <% } %>
+      </form>
+      <% if (user) { %>
+        <a href="/listings/new" class="btn btn-primary">+ Post Item</a>
+      <% } %>
+    </div>
+
+    <% if (listings.length === 0) { %>
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <h2>No listings yet</h2>
+        <p>Be the first to post something!</p>
+        <% if (user) { %>
+          <a href="/listings/new" class="btn btn-primary">Post an Item</a>
+        <% } else { %>
+          <a href="/signup" class="btn btn-primary">Sign up to post</a>
+        <% } %>
+      </div>
+    <% } else { %>
+      <div class="listings-grid">
+        <% listings.forEach(listing => { %>
+          <a href="/listings/<%= listing._id %>" class="listing-card">
+            <div class="listing-image">
+              <% if (listing.imageUrl) { %>
+                <img src="<%= listing.imageUrl %>" alt="<%= listing.title %>" />
+              <% } else { %>
+                <div class="listing-no-image">📷</div>
+              <% } %>
+              <span class="listing-badge <%= listing.type === 'give_away' ? 'badge-free' : 'badge-sale' %>">
+                <%= listing.type === 'give_away' ? 'Free' : '$' + listing.price.toFixed(2) %>
+              </span>
+            </div>
+            <div class="listing-info">
+              <h3 class="listing-title"><%= listing.title %></h3>
+              <p class="listing-category"><%= listing.category %></p>
+              <p class="listing-desc"><%= listing.description.slice(0, 80) %><%= listing.description.length > 80 ? '…' : '' %></p>
+              <div class="listing-meta">
+                <span>by <%= listing.ownerName %></span>
+                <span><%= new Date(listing.createdAt).toLocaleDateString() %></span>
+              </div>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+    <% } %>
+  </main>
+  <footer class="footer"><p>SwapShop &mdash; Give, sell, and find used treasures in your community.</p></footer>
+</body>
+</html>

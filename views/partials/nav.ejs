@@ -1,0 +1,21 @@
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="/listings" class="nav-logo">🔄 SwapShop</a>
+    <div class="nav-links">
+      <a href="/listings">Browse</a>
+      <% if (user) { %>
+        <a href="/listings/new" class="btn btn-primary btn-sm">+ Post Item</a>
+        <a href="/messages/inbox">Inbox</a>
+        <div class="nav-user">
+          <span>👤 <%= user.username %></span>
+          <form method="POST" action="/logout" style="display:inline">
+            <button type="submit" class="btn-link">Log out</button>
+          </form>
+        </div>
+      <% } else { %>
+        <a href="/login">Log in</a>
+        <a href="/signup" class="btn btn-primary btn-sm">Sign up</a>
+      <% } %>
+    </div>
+  </div>
+</nav>
