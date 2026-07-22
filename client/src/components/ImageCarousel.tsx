@@ -70,6 +70,9 @@ export default function ImageCarousel({
     event.preventDefault();
     event.stopPropagation();
     suppressNextClick.current = true;
+    window.setTimeout(() => {
+      suppressNextClick.current = false;
+    }, 400);
     changeImage(deltaX < 0 ? 1 : -1);
   }
 
