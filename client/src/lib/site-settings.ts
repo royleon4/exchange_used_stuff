@@ -10,6 +10,8 @@ export const fallbackSiteSettings: PublicSiteSettings = {
   homeTitleStartEn: "Let a well-loved item",
   homeTitleAccentEn: "find its next admirer at our wedding.",
   homeDescriptionEn: "Share an item you may bring and see whether other guests are interested. When someone taps “I want it,” you can decide with more confidence whether to bring it along.",
+  homeHeroImageId: null,
+  homeHeroImageUrl: null,
   announcement: "",
   announcementEn: "",
   announcementEnabled: false,
