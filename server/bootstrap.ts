@@ -6,7 +6,7 @@ import { db, pool } from "./db.js";
 const DEFAULT_ADMIN_PASSWORD = "admin123";
 const LEGACY_ADMIN_PASSWORD = "adim123";
 
-async function ensureWantIntegrity(): Promise<void> {
+export async function ensureWantIntegrity(): Promise<void> {
   const exists = await pool.query<{ table_name: string | null }>(
     "SELECT to_regclass('public.post_wants')::text AS table_name",
   );
@@ -15,32 +15,64 @@ async function ensureWantIntegrity(): Promise<void> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+
+    // Replit may keep the previous deployment alive while the new version starts.
+    // Lock the table so the old instance cannot add another duplicate between
+    // cleanup and unique-index creation.
+    await client.query("LOCK TABLE post_wants IN ACCESS EXCLUSIVE MODE");
+
+    // A previously interrupted index creation can leave an unusable index name.
+    // Recreate both indexes after the data has been normalized.
+    await client.query("DROP INDEX IF EXISTS post_wants_user_post_unique");
+    await client.query("DROP INDEX IF EXISTS post_wants_anon_post_unique");
+
     await client.query(`
-      DELETE FROM post_wants older
-      USING post_wants newer
-      WHERE older.id > newer.id
-        AND older.post_id = newer.post_id
-        AND older.user_id IS NOT NULL
-        AND older.user_id = newer.user_id
+      DELETE FROM post_wants
+      WHERE id IN (
+        SELECT id
+        FROM (
+          SELECT
+            id,
+            ROW_NUMBER() OVER (
+              PARTITION BY user_id, post_id
+              ORDER BY id
+            ) AS duplicate_number
+          FROM post_wants
+          WHERE user_id IS NOT NULL
+        ) duplicates
+        WHERE duplicate_number > 1
+      )
     `);
+
     await client.query(`
-      DELETE FROM post_wants older
-      USING post_wants newer
-      WHERE older.id > newer.id
-        AND older.post_id = newer.post_id
-        AND older.anon_id IS NOT NULL
-        AND older.anon_id = newer.anon_id
+      DELETE FROM post_wants
+      WHERE id IN (
+        SELECT id
+        FROM (
+          SELECT
+            id,
+            ROW_NUMBER() OVER (
+              PARTITION BY anon_id, post_id
+              ORDER BY id
+            ) AS duplicate_number
+          FROM post_wants
+          WHERE anon_id IS NOT NULL
+        ) duplicates
+        WHERE duplicate_number > 1
+      )
     `);
+
     await client.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS post_wants_user_post_unique
+      CREATE UNIQUE INDEX post_wants_user_post_unique
       ON post_wants (user_id, post_id)
       WHERE user_id IS NOT NULL
     `);
     await client.query(`
-      CREATE UNIQUE INDEX IF NOT EXISTS post_wants_anon_post_unique
+      CREATE UNIQUE INDEX post_wants_anon_post_unique
       ON post_wants (anon_id, post_id)
       WHERE anon_id IS NOT NULL
     `);
+
     await client.query("COMMIT");
     console.log("[bootstrap] want records checked");
   } catch (error) {
