@@ -30,6 +30,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, "請輸入密碼"),
 });
 
+export const profileUpdateSchema = z.object({
+  nickname: nicknameSchema,
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "請輸入目前密碼"),
+  newPassword: passwordSchema,
+});
+
 export const itemStatusSchema = z.enum([
   "considering",
   "bringing",
