@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { PublicUser } from "../../../shared/types";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const { refresh } = useAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -27,7 +28,8 @@ export default function RegisterPage() {
         }),
       });
       await refresh();
-      navigate("/");
+      const next = new URLSearchParams(location.search).get("next");
+      navigate(next?.startsWith("/") ? next : "/");
     } catch (value) {
       setError(value instanceof ApiError ? value.message : "Registration failed. Please try again.");
     } finally {
