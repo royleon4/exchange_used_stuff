@@ -12,7 +12,7 @@
 - 主標題：讓好物在婚禮這天，遇見下一個喜歡它的人。
 - 說明：「我想要」只表示有興趣，不代表正式交易承諾。
 
-## 視覺方向
+## 視覺與語言
 
 延續 Excel & Min 婚禮邀請網站的自然、溫暖與留白感，不做成一般二手電商。
 
@@ -26,40 +26,55 @@
 - Gold：`#C4A35A`
 - 中文字體：Noto Sans TC
 - 英文標題：Cormorant Garamond
+- 全站提供「中／EN」切換，選擇保存在瀏覽器 localStorage。
+
+## 頁面結構
+
+- `/`：婚禮概念首頁，不直接顯示完整貼文列表。
+- `/items`：獨立物品牆，提供最新、最早、最多人想要排序。
+- `/posts/:id`：貼文詳情。
+- `/posts/new`、`/posts/:id/edit`：建立及編輯貼文。
+- `/login`、`/register`、`/me`、`/admin`。
+
+物品牆卡片及貼文詳情都使用圖片輪播：
+
+- 畫面一次只顯示一張圖片。
+- 多張圖片時，在圖片左右兩側顯示上一張／下一張按鈕。
+- 可循環切換，並顯示目前張數或圓點。
+- 只有一張圖片時，不顯示左右按鈕與輪播控制。
 
 ## 角色
 
 ### 訪客
 
-- 瀏覽公開貼文、圖片、想要人數與既有留言
-- 使用最新、最早、最多人想要排序
-- 不可發文、按想要或留言
+- 瀏覽公開貼文、圖片、想要人數與既有留言。
+- 使用最新、最早、最多人想要排序。
 
 ### 一般會員
 
-- 註冊時填寫帳號、密碼與公開暱稱
-- 發布、編輯與刪除自己的貼文
-- 每篇貼文至少 1 張、最多 9 張圖片
-- 對每篇貼文按一次「我想要」，可取消
-- 在允許留言的貼文留言
-- 查看自己的貼文與想要清單
+- 註冊時填寫帳號、密碼與公開暱稱；不使用婚禮邀請碼。
+- 發布、編輯與刪除自己的貼文。
+- 每篇貼文至少 1 張、最多 9 張圖片。
+- 對每篇貼文按一次「我想要」，可取消。
+- 在允許留言的貼文留言。
+- 查看自己的貼文與想要清單。
 
 ### 管理員
 
-- 停用或恢復會員
-- 隱藏、恢復或刪除貼文與留言
-- 編輯首頁公告與站台設定
-- 查看圖片清理狀態
+- 停用或恢復會員。
+- 隱藏、恢復或刪除貼文與留言。
+- 編輯首頁公告與站台設定。
+- 查看圖片清理狀態。
 
 ## 文字與圖片限制
 
-- 帳號：4–30 字元，只允許英文字母、數字、底線、句點
-- 密碼：8–72 字元
-- 暱稱：2–20 字元
-- 標題：2–40 字元
-- 描述：10–500 字元
-- 留言：1–300 字元
-- 圖片：JPEG、PNG、WebP；單張最多 8 MB；每篇 1–9 張
+- 帳號：4–30 字元，只允許英文字母、數字、底線、句點。
+- 密碼：8–72 字元。
+- 暱稱：2–20 字元。
+- 標題：2–40 字元。
+- 描述：10–500 字元。
+- 留言：1–300 字元。
+- 圖片：JPEG、PNG、WebP；單張最多 8 MB；每篇 1–9 張。
 
 所有限制都必須在前端及後端驗證。所有使用者文字以純文字顯示，不允許 HTML。
 
@@ -78,6 +93,7 @@
 - React Router
 - TanStack Query
 - Tailwind CSS
+- 自有 Language Provider，不依賴額外 i18n 套件
 
 ### 後端
 
@@ -85,17 +101,17 @@
 - PostgreSQL、Drizzle ORM
 - Zod、bcryptjs、JWT HttpOnly cookie
 - helmet、express-rate-limit
-- multer、sharp、Google Drive API
+- multer、sharp、Replit Google Drive Connector
 
 ## Google Drive 圖片流程
 
 1. 瀏覽器以 multipart 上傳圖片。
 2. Server 驗證 MIME、大小與真實圖片內容。
 3. sharp 自動旋轉、移除 metadata、縮至最長邊 1600px，轉 WebP quality 82。
-4. Server 使用 OAuth refresh token 上傳到指定 Google Drive folder。
+4. Server 透過 Replit Google Drive Connector 上傳到指定 Google Drive folder。
 5. Database 只保存 Drive file ID、尺寸與排序。
 6. 前端只能透過 `/api/media/:imageId` 讀取圖片。
-7. 不可把 Google credentials 或任意 Drive file ID 暴露給瀏覽器。
+7. 不可把 Google 連線資訊或任意 Drive file ID 暴露給瀏覽器。
 
 ## 資料表
 
@@ -107,7 +123,7 @@
 - `site_settings`
 - `image_cleanup_jobs`
 
-`post_wants` 使用 `(user_id, post_id)` primary key，確保同一會員對同一貼文只有一筆。
+同一使用者對同一貼文只能保留一筆「我想要」。
 
 ## API
 
@@ -123,40 +139,41 @@
 - `/api/me/profile`
 - `/api/admin/*`
 
+貼文列表 API 必須回傳依 `sort_order` 排序的完整圖片 ID 清單，供卡片輪播使用。
+
 ## Replit Secrets
 
 ```text
 DATABASE_URL
 SESSION_SECRET
-GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_SECRET
-GOOGLE_REFRESH_TOKEN
 GOOGLE_DRIVE_FOLDER_ID
 ADMIN_USERNAME
 ADMIN_PASSWORD
 ADMIN_NICKNAME
-WEDDING_INVITE_CODE
 ```
 
-`WEDDING_INVITE_CODE` 為選填；設定後，註冊時必須輸入正確邀請碼。
+不需要婚禮邀請碼，也不要建立 `WEDDING_INVITE_CODE` 或 `inviteCode` 欄位。
 
 ## 完成標準
 
-- 訪客可瀏覽與排序
-- 會員可註冊、登入、發布帶圖片貼文
-- 公開畫面只顯示暱稱
-- 作者只能編輯與刪除自己的貼文
-- 每人每篇最多一個「我想要」
-- 發文者可開關新留言
-- 圖片保存於 Google Drive，重啟後仍可讀取
-- 管理 API 與分頁式後台可用
-- Secrets 不進 Git
-- `npm run check`、`npm test`、`npm run build` 通過
+- 首頁與物品牆為獨立頁面。
+- 全站中／英文切換可用並記住選擇。
+- 物品卡片與詳情頁輪播符合單張／多張規則。
+- 訪客可瀏覽與排序。
+- 會員可註冊、登入、發布帶圖片貼文。
+- 公開畫面只顯示暱稱。
+- 作者只能編輯與刪除自己的貼文。
+- 每人每篇最多一個「我想要」。
+- 發文者可開關新留言。
+- 圖片保存於 Google Drive，重啟後仍可讀取。
+- 管理 API 與分頁式後台可用。
+- Secrets 不進 Git。
+- `npm run check`、`npm test`、`npm run build` 通過。
 
 ## 後續階段
 
-1. 完整貼文編輯表單與圖片拖曳排序
-2. 每篇貼文 Drive 子資料夾與孤兒圖片自動清理
-3. 會員中心完整貼文卡片列表
-4. 管理後台完整列表、搜尋與 moderation 操作
-5. API integration tests 與更完整的錯誤狀態
+1. 完整貼文編輯表單與圖片拖曳排序。
+2. 每篇貼文 Drive 子資料夾與孤兒圖片自動清理。
+3. 會員中心完整貼文卡片列表。
+4. 管理後台完整列表、搜尋與 moderation 操作。
+5. API integration tests 與更完整的錯誤狀態。
