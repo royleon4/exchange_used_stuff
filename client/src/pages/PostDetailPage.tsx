@@ -105,7 +105,7 @@ export default function PostDetailPage() {
               onClick={() => want.mutate()}
               disabled={want.isPending || post.isOwner}
             >
-              <Heart size={18} fill={post.currentUserWants ? "currentColor" : "none" />
+              <Heart size={18} fill={post.currentUserWants ? "currentColor" : "none"} />
               {post.isOwner ? "這是你的貼文" : post.currentUserWants ? "取消想要" : "我想要"} · {post.wantCount}
             </button>
             {post.isOwner && (
