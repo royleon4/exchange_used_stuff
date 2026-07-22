@@ -23,7 +23,6 @@ export const registerSchema = z.object({
   username: usernameSchema,
   password: passwordSchema,
   nickname: nicknameSchema,
-  inviteCode: z.string().trim().optional(),
 });
 
 export const loginSchema = z.object({

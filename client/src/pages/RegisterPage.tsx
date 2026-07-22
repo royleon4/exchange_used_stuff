@@ -22,7 +22,6 @@ export default function RegisterPage() {
           username: form.get("username"),
           password: form.get("password"),
           nickname: form.get("nickname"),
-          inviteCode: form.get("inviteCode") || undefined,
         }),
       });
       await refresh();

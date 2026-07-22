@@ -23,10 +23,6 @@ const authLimiter = rateLimit({
 
 router.post("/register", authLimiter, async (req, res) => {
   const input = registerSchema.parse(req.body);
-  const requiredInviteCode = process.env.WEDDING_INVITE_CODE?.trim();
-  if (requiredInviteCode && input.inviteCode !== requiredInviteCode) {
-    throw new AppError(403, "INVALID_INVITE_CODE", "婚禮邀請碼不正確");
-  }
 
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.username, input.username)).limit(1);
   if (existing.length > 0) {
