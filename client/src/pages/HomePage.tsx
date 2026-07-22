@@ -15,55 +15,49 @@ export default function HomePage() {
 
   return (
     <>
-      <section className="page-shell py-12 sm:py-20">
-        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/80 bg-white/75 px-6 py-12 shadow-soft backdrop-blur sm:px-12 sm:py-20">
-          <div className="absolute -right-16 -top-16 size-64 rounded-full bg-sage-100/70 blur-2xl" />
-          <div className="absolute -bottom-24 left-1/3 size-72 rounded-full bg-cream-200/80 blur-3xl" />
-          <div className="relative">
-            <div className="max-w-3xl">
-              <p className="eyebrow">{t("heroEyebrow")}</p>
-              <h1 className="mt-5 font-display text-5xl font-semibold leading-[0.98] text-ink-900 sm:text-7xl">
-                {titleStart} <span className="text-sage-600">{titleAccent}</span>
-              </h1>
-              <p className="mt-7 max-w-2xl text-base leading-8 text-ink-700 sm:text-lg">{description}</p>
-            </div>
+      <section className="page-shell py-14 sm:py-24">
+        <div className="max-w-4xl">
+          <p className="eyebrow">{t("heroEyebrow")}</p>
+          <h1 className="mt-5 font-display text-5xl font-semibold leading-[0.98] text-ink-900 sm:text-7xl">
+            {titleStart} <span className="text-sage-600">{titleAccent}</span>
+          </h1>
+          <p className="mt-7 max-w-2xl text-base leading-8 text-ink-700 sm:text-lg">{description}</p>
+        </div>
 
-            <div className="mt-10 grid gap-4 lg:grid-cols-2">
-              <Link
-                to={user ? "/posts/new" : "/register?next=/posts/new"}
-                className="group flex min-h-28 items-center gap-4 rounded-[2rem] bg-sage-600 px-5 py-5 text-left text-white shadow-lg shadow-sage-600/20 transition duration-200 hover:-translate-y-1 hover:bg-sage-700 hover:shadow-xl focus-visible:-translate-y-1 sm:min-h-32 sm:gap-5 sm:px-7 sm:py-6"
-              >
-                <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-white/15 sm:size-16">
-                  <PackageOpen size={28} aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-lg font-bold sm:text-xl">
-                    {user ? t("heroPublish") : t("heroJoin")}
-                  </span>
-                  <span className="mt-1.5 block text-sm leading-6 text-white/80">
-                    {t("newPostDescription")}
-                  </span>
-                </span>
-                <ArrowRight className="shrink-0 transition-transform group-hover:translate-x-1" size={24} aria-hidden="true" />
-              </Link>
+        <div className="mt-10 grid gap-4 lg:grid-cols-2">
+          <Link
+            to={user ? "/posts/new" : "/register?next=/posts/new"}
+            className="group flex min-h-28 items-center gap-4 rounded-[2rem] bg-sage-600 px-5 py-5 text-left text-white shadow-lg shadow-sage-600/20 transition duration-200 hover:-translate-y-1 hover:bg-sage-700 hover:shadow-xl focus-visible:-translate-y-1 sm:min-h-32 sm:gap-5 sm:px-7 sm:py-6"
+          >
+            <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-white/15 sm:size-16">
+              <PackageOpen size={28} aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-lg font-bold sm:text-xl">
+                {user ? t("heroPublish") : t("heroJoin")}
+              </span>
+              <span className="mt-1.5 block text-sm leading-6 text-white/80">
+                {t("newPostDescription")}
+              </span>
+            </span>
+            <ArrowRight className="shrink-0 transition-transform group-hover:translate-x-1" size={24} aria-hidden="true" />
+          </Link>
 
-              <Link
-                to="/items"
-                className="group flex min-h-28 items-center gap-4 rounded-[2rem] border-2 border-sage-100 bg-white/90 px-5 py-5 text-left text-sage-700 shadow-md transition duration-200 hover:-translate-y-1 hover:border-sage-300 hover:bg-sage-50 hover:shadow-lg focus-visible:-translate-y-1 sm:min-h-32 sm:gap-5 sm:px-7 sm:py-6"
-              >
-                <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-sage-100 text-sage-700 sm:size-16">
-                  <Heart size={28} aria-hidden="true" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-lg font-bold text-ink-900 sm:text-xl">{t("heroBrowse")}</span>
-                  <span className="mt-1.5 block text-sm leading-6 text-ink-700">
-                    {t("itemsDescription")}
-                  </span>
-                </span>
-                <ArrowRight className="shrink-0 transition-transform group-hover:translate-x-1" size={24} aria-hidden="true" />
-              </Link>
-            </div>
-          </div>
+          <Link
+            to="/items"
+            className="group flex min-h-28 items-center gap-4 rounded-[2rem] border-2 border-sage-100 bg-white/90 px-5 py-5 text-left text-sage-700 shadow-md transition duration-200 hover:-translate-y-1 hover:border-sage-300 hover:bg-sage-50 hover:shadow-lg focus-visible:-translate-y-1 sm:min-h-32 sm:gap-5 sm:px-7 sm:py-6"
+          >
+            <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-sage-100 text-sage-700 sm:size-16">
+              <Heart size={28} aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-lg font-bold text-ink-900 sm:text-xl">{t("heroBrowse")}</span>
+              <span className="mt-1.5 block text-sm leading-6 text-ink-700">
+                {t("itemsDescription")}
+              </span>
+            </span>
+            <ArrowRight className="shrink-0 transition-transform group-hover:translate-x-1" size={24} aria-hidden="true" />
+          </Link>
         </div>
       </section>
 
