@@ -1,78 +1,12 @@
 import { eq } from "drizzle-orm";
 import { siteSettings, users } from "../shared/schema.js";
 import { hashPassword, verifyPassword } from "./auth.js";
-import { db, pool } from "./db.js";
+import { db } from "./db.js";
 
 const DEFAULT_ADMIN_PASSWORD = "admin123";
 const LEGACY_ADMIN_PASSWORD = "adim123";
 
-export async function ensureWantIntegrity(): Promise<void> {
-  const exists = await pool.query<{ table_name: string | null }>(
-    "SELECT to_regclass('public.post_wants')::text AS table_name",
-  );
-  if (!exists.rows[0]?.table_name) return;
-
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-
-    // Stop the previous deployment from writing while duplicate rows are cleaned.
-    await client.query("LOCK TABLE post_wants IN ACCESS EXCLUSIVE MODE");
-
-    // These indexes were introduced by an earlier deployment attempt. They are
-    // no longer required because write operations are serialized in a transaction.
-    await client.query("DROP INDEX IF EXISTS post_wants_user_post_unique");
-    await client.query("DROP INDEX IF EXISTS post_wants_anon_post_unique");
-
-    await client.query(`
-      DELETE FROM post_wants
-      WHERE id IN (
-        SELECT id
-        FROM (
-          SELECT
-            id,
-            ROW_NUMBER() OVER (
-              PARTITION BY user_id, post_id
-              ORDER BY id
-            ) AS duplicate_number
-          FROM post_wants
-          WHERE user_id IS NOT NULL
-        ) duplicates
-        WHERE duplicate_number > 1
-      )
-    `);
-
-    await client.query(`
-      DELETE FROM post_wants
-      WHERE id IN (
-        SELECT id
-        FROM (
-          SELECT
-            id,
-            ROW_NUMBER() OVER (
-              PARTITION BY anon_id, post_id
-              ORDER BY id
-            ) AS duplicate_number
-          FROM post_wants
-          WHERE anon_id IS NOT NULL
-        ) duplicates
-        WHERE duplicate_number > 1
-      )
-    `);
-
-    await client.query("COMMIT");
-    console.log("[bootstrap] duplicate want records cleaned");
-  } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally {
-    client.release();
-  }
-}
-
 export async function ensureInitialData(): Promise<void> {
-  await ensureWantIntegrity();
-
   const [settings] = await db.select({ id: siteSettings.id }).from(siteSettings).limit(1);
   if (!settings) {
     await db.insert(siteSettings).values({ id: 1 });
