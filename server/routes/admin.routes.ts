@@ -1,93 +1,275 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { comments, posts, siteSettings, users } from "../../shared/schema.js";
-import { requireAdmin } from "../auth.js";
-import { db } from "../db.js";
+import {
+  adminPostUpdateSchema,
+  adminSiteSettingsSchema,
+  adminUserUpdateSchema,
+  moderationStatusSchema,
+} from "../../shared/validation.js";
+import { hashPassword, requireAdmin } from "../auth.js";
+import { db, pool } from "../db.js";
 import { AppError } from "../middleware/error-handler.js";
 
 const router = Router();
 router.use(requireAdmin);
 
+function positiveId(value: string): number {
+  const id = Number(value);
+  if (!Number.isInteger(id) || id <= 0) throw new AppError(400, "INVALID_ID", "編號格式不正確");
+  return id;
+}
+
 router.get("/users", async (_req, res) => {
-  const rows = await db
-    .select({
+  const result = await pool.query<{
+    id: number;
+    username: string;
+    nickname: string;
+    role: "user" | "admin";
+    is_active: boolean;
+    created_at: Date;
+    post_count: string;
+    comment_count: string;
+    want_count: string;
+  }>(
+    `SELECT
+      u.id,
+      u.username,
+      u.nickname,
+      u.role,
+      u.is_active,
+      u.created_at,
+      COUNT(DISTINCT p.id)::text AS post_count,
+      COUNT(DISTINCT c.id)::text AS comment_count,
+      COUNT(DISTINCT pw.id)::text AS want_count
+     FROM users u
+     LEFT JOIN posts p ON p.author_id = u.id AND p.deleted_at IS NULL
+     LEFT JOIN comments c ON c.author_id = u.id AND c.deleted_at IS NULL
+     LEFT JOIN post_wants pw ON pw.user_id = u.id
+     GROUP BY u.id
+     ORDER BY u.created_at DESC`,
+  );
+
+  res.json({
+    users: result.rows.map((row) => ({
+      id: row.id,
+      username: row.username,
+      nickname: row.nickname,
+      role: row.role,
+      isActive: row.is_active,
+      createdAt: row.created_at.toISOString(),
+      postCount: Number(row.post_count),
+      commentCount: Number(row.comment_count),
+      wantCount: Number(row.want_count),
+    })),
+  });
+});
+
+router.patch("/users/:id", async (req, res) => {
+  const id = positiveId(req.params.id);
+  const input = adminUserUpdateSchema.parse(req.body);
+  const [target] = await db.select().from(users).where(eq(users.id, id)).limit(1);
+  if (!target) throw new AppError(404, "USER_NOT_FOUND", "找不到會員");
+
+  const wouldRemoveAdmin = target.role === "admin" && (input.role === "user" || input.isActive === false);
+  if (wouldRemoveAdmin) {
+    const [otherAdmin] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.role, "admin"), eq(users.isActive, true), ne(users.id, id)))
+      .limit(1);
+    if (!otherAdmin) throw new AppError(400, "LAST_ADMIN", "至少需要保留一位有效管理員");
+  }
+
+  if (id === req.user!.id && (input.role === "user" || input.isActive === false)) {
+    throw new AppError(400, "CANNOT_LOCK_SELF", "不能停用或移除自己的管理員權限");
+  }
+
+  const changes: {
+    nickname?: string;
+    role?: "user" | "admin";
+    isActive?: boolean;
+    passwordHash?: string;
+    updatedAt: Date;
+  } = { updatedAt: new Date() };
+  if (input.nickname !== undefined) changes.nickname = input.nickname;
+  if (input.role !== undefined) changes.role = input.role;
+  if (input.isActive !== undefined) changes.isActive = input.isActive;
+  if (input.newPassword !== undefined) changes.passwordHash = await hashPassword(input.newPassword);
+
+  const [user] = await db
+    .update(users)
+    .set(changes)
+    .where(eq(users.id, id))
+    .returning({
       id: users.id,
       username: users.username,
       nickname: users.nickname,
       role: users.role,
       isActive: users.isActive,
       createdAt: users.createdAt,
-    })
-    .from(users)
-    .orderBy(users.createdAt);
-  res.json({ users: rows });
-});
+    });
 
-router.patch("/users/:id/status", async (req, res) => {
-  const id = Number(req.params.id);
-  const isActive = req.body.isActive;
-  if (typeof isActive !== "boolean") throw new AppError(400, "VALIDATION_ERROR", "狀態格式不正確");
-  const [user] = await db
-    .update(users)
-    .set({ isActive, updatedAt: new Date() })
-    .where(eq(users.id, id))
-    .returning({ id: users.id, nickname: users.nickname, isActive: users.isActive });
-  if (!user) throw new AppError(404, "USER_NOT_FOUND", "找不到會員");
   res.json({ user });
 });
 
-router.patch("/posts/:id/moderation", async (req, res) => {
-  const status = req.body.status;
-  if (!(["visible", "hidden", "deleted"] as const).includes(status)) {
-    throw new AppError(400, "VALIDATION_ERROR", "貼文狀態不正確");
+router.get("/posts", async (_req, res) => {
+  const result = await pool.query<{
+    id: number;
+    author_id: number;
+    author_nickname: string;
+    title: string;
+    description: string;
+    item_status: "considering" | "bringing" | "not_bringing" | "closed";
+    comments_enabled: boolean;
+    moderation_status: "visible" | "hidden" | "deleted";
+    cover_image_id: number | null;
+    want_count: string;
+    comment_count: string;
+    created_at: Date;
+    updated_at: Date;
+    deleted_at: Date | null;
+  }>(
+    `SELECT
+      p.id,
+      p.author_id,
+      u.nickname AS author_nickname,
+      p.title,
+      p.description,
+      p.item_status,
+      p.comments_enabled,
+      p.moderation_status,
+      MIN(pi.id) FILTER (WHERE pi.sort_order = 0) AS cover_image_id,
+      COUNT(DISTINCT pw.id)::text AS want_count,
+      COUNT(DISTINCT c.id)::text AS comment_count,
+      p.created_at,
+      p.updated_at,
+      p.deleted_at
+     FROM posts p
+     JOIN users u ON u.id = p.author_id
+     LEFT JOIN post_images pi ON pi.post_id = p.id
+     LEFT JOIN post_wants pw ON pw.post_id = p.id
+     LEFT JOIN comments c ON c.post_id = p.id
+     GROUP BY p.id, u.nickname
+     ORDER BY p.created_at DESC`,
+  );
+
+  res.json({
+    posts: result.rows.map((row) => ({
+      id: row.id,
+      authorId: row.author_id,
+      authorNickname: row.author_nickname,
+      title: row.title,
+      description: row.description,
+      itemStatus: row.item_status,
+      commentsEnabled: row.comments_enabled,
+      moderationStatus: row.moderation_status,
+      coverImageId: row.cover_image_id,
+      wantCount: Number(row.want_count),
+      commentCount: Number(row.comment_count),
+      createdAt: row.created_at.toISOString(),
+      updatedAt: row.updated_at.toISOString(),
+      deletedAt: row.deleted_at?.toISOString() ?? null,
+    })),
+  });
+});
+
+router.patch("/posts/:id", async (req, res) => {
+  const id = positiveId(req.params.id);
+  const input = adminPostUpdateSchema.parse(req.body);
+  const changes: {
+    title?: string;
+    description?: string;
+    itemStatus?: "considering" | "bringing" | "not_bringing" | "closed";
+    commentsEnabled?: boolean;
+    moderationStatus?: "visible" | "hidden" | "deleted";
+    deletedAt?: Date | null;
+    updatedAt: Date;
+  } = { updatedAt: new Date() };
+
+  if (input.title !== undefined) changes.title = input.title;
+  if (input.description !== undefined) changes.description = input.description;
+  if (input.itemStatus !== undefined) changes.itemStatus = input.itemStatus;
+  if (input.commentsEnabled !== undefined) changes.commentsEnabled = input.commentsEnabled;
+  if (input.moderationStatus !== undefined) {
+    changes.moderationStatus = input.moderationStatus;
+    changes.deletedAt = input.moderationStatus === "deleted" ? new Date() : null;
   }
-  const [post] = await db
-    .update(posts)
-    .set({ moderationStatus: status, updatedAt: new Date() })
-    .where(eq(posts.id, Number(req.params.id)))
-    .returning();
+
+  const [post] = await db.update(posts).set(changes).where(eq(posts.id, id)).returning();
   if (!post) throw new AppError(404, "POST_NOT_FOUND", "找不到貼文");
   res.json({ post });
 });
 
+router.get("/comments", async (_req, res) => {
+  const result = await pool.query<{
+    id: number;
+    post_id: number;
+    post_title: string;
+    author_nickname: string;
+    body: string;
+    moderation_status: "visible" | "hidden" | "deleted";
+    created_at: Date;
+  }>(
+    `SELECT
+      c.id,
+      c.post_id,
+      p.title AS post_title,
+      u.nickname AS author_nickname,
+      c.body,
+      c.moderation_status,
+      c.created_at
+     FROM comments c
+     JOIN posts p ON p.id = c.post_id
+     JOIN users u ON u.id = c.author_id
+     ORDER BY c.created_at DESC
+     LIMIT 300`,
+  );
+  res.json({
+    comments: result.rows.map((row) => ({
+      id: row.id,
+      postId: row.post_id,
+      postTitle: row.post_title,
+      authorNickname: row.author_nickname,
+      body: row.body,
+      moderationStatus: row.moderation_status,
+      createdAt: row.created_at.toISOString(),
+    })),
+  });
+});
+
 router.patch("/comments/:id/moderation", async (req, res) => {
-  const status = req.body.status;
-  if (!(["visible", "hidden", "deleted"] as const).includes(status)) {
-    throw new AppError(400, "VALIDATION_ERROR", "留言狀態不正確");
-  }
+  const id = positiveId(req.params.id);
+  const status = moderationStatusSchema.parse(req.body.status);
   const [comment] = await db
     .update(comments)
-    .set({ moderationStatus: status, updatedAt: new Date() })
-    .where(eq(comments.id, Number(req.params.id)))
+    .set({
+      moderationStatus: status,
+      deletedAt: status === "deleted" ? new Date() : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(comments.id, id))
     .returning();
   if (!comment) throw new AppError(404, "COMMENT_NOT_FOUND", "找不到留言");
   res.json({ comment });
 });
 
 router.get("/settings", async (_req, res) => {
-  const [settings] = await db.select().from(siteSettings).limit(1);
+  let [settings] = await db.select().from(siteSettings).limit(1);
+  if (!settings) [settings] = await db.insert(siteSettings).values({}).returning();
   res.json({ settings });
 });
 
 router.patch("/settings", async (req, res) => {
-  const [current] = await db.select().from(siteSettings).limit(1);
-  const values = {
-    siteTitle: typeof req.body.siteTitle === "string" ? req.body.siteTitle.slice(0, 80) : current?.siteTitle,
-    announcement: typeof req.body.announcement === "string" ? req.body.announcement.slice(0, 500) : current?.announcement,
-    registrationOpen: typeof req.body.registrationOpen === "boolean" ? req.body.registrationOpen : current?.registrationOpen,
-    defaultCommentsEnabled:
-      typeof req.body.defaultCommentsEnabled === "boolean"
-        ? req.body.defaultCommentsEnabled
-        : current?.defaultCommentsEnabled,
-    updatedAt: new Date(),
-  };
+  const input = adminSiteSettingsSchema.parse(req.body);
+  let [current] = await db.select().from(siteSettings).limit(1);
+  if (!current) [current] = await db.insert(siteSettings).values({}).returning();
 
-  const [settings] = current
-    ? await db.update(siteSettings).set(values).where(eq(siteSettings.id, current.id)).returning()
-    : await db
-        .insert(siteSettings)
-        .values({ ...values, siteTitle: values.siteTitle ?? "Excel & Min 二手物品需求牆" })
-        .returning();
+  const [settings] = await db
+    .update(siteSettings)
+    .set({ ...input, updatedAt: new Date() })
+    .where(eq(siteSettings.id, current.id))
+    .returning();
   res.json({ settings });
 });
 
