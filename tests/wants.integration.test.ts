@@ -101,8 +101,9 @@ describeDatabase("post want database integrity", () => {
     const ownPostId = ownPost.rows[0]!.id;
 
     await pool.query(
-      "INSERT INTO post_wants (user_id, post_id) VALUES ($1, $2)",
-      [userId, postId],
+      `INSERT INTO post_wants (user_id, post_id)
+       VALUES ($1, $2), ($1, $3)`,
+      [userId, postId, ownPostId],
     );
     await pool.query(
       `INSERT INTO post_wants (anon_id, post_id)
@@ -128,5 +129,28 @@ describeDatabase("post want database integrity", () => {
     expect(Number(memberRows.rows[0]!.count)).toBe(1);
     expect(Number(anonymousRows.rows[0]!.count)).toBe(0);
     expect(Number(ownPostRows.rows[0]!.count)).toBe(0);
+  });
+
+  it("removes an old member want on the user's own post without an anonymous cookie", async () => {
+    const ownPost = await pool.query<{ id: number }>(
+      `INSERT INTO posts (author_id, title, description)
+       VALUES ($1, '舊資料中的自己的物品', '')
+       RETURNING id`,
+      [userId],
+    );
+    const ownPostId = ownPost.rows[0]!.id;
+
+    await pool.query(
+      "INSERT INTO post_wants (user_id, post_id) VALUES ($1, $2)",
+      [userId, ownPostId],
+    );
+
+    await wants.claimAnonymousWants(userId);
+
+    const rows = await pool.query<{ count: string }>(
+      "SELECT COUNT(*)::text AS count FROM post_wants WHERE post_id = $1",
+      [ownPostId],
+    );
+    expect(Number(rows.rows[0]!.count)).toBe(0);
   });
 });
