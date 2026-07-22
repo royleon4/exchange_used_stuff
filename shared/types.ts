@@ -38,6 +38,8 @@ export type PublicSiteSettings = {
   homeTitleStartEn: string;
   homeTitleAccentEn: string;
   homeDescriptionEn: string;
+  homeTitleColor: string;
+  homeTitleAccentColor: string;
   homeHeroImageId: number | null;
   homeHeroImageUrl: string | null;
   announcement: string;
