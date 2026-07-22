@@ -16,13 +16,11 @@ export async function ensureWantIntegrity(): Promise<void> {
   try {
     await client.query("BEGIN");
 
-    // Replit may keep the previous deployment alive while the new version starts.
-    // Lock the table so the old instance cannot add another duplicate between
-    // cleanup and unique-index creation.
+    // Stop the previous deployment from writing while duplicate rows are cleaned.
     await client.query("LOCK TABLE post_wants IN ACCESS EXCLUSIVE MODE");
 
-    // A previously interrupted index creation can leave an unusable index name.
-    // Recreate both indexes after the data has been normalized.
+    // These indexes were introduced by an earlier deployment attempt. They are
+    // no longer required because write operations are serialized in a transaction.
     await client.query("DROP INDEX IF EXISTS post_wants_user_post_unique");
     await client.query("DROP INDEX IF EXISTS post_wants_anon_post_unique");
 
@@ -62,19 +60,8 @@ export async function ensureWantIntegrity(): Promise<void> {
       )
     `);
 
-    await client.query(`
-      CREATE UNIQUE INDEX post_wants_user_post_unique
-      ON post_wants (user_id, post_id)
-      WHERE user_id IS NOT NULL
-    `);
-    await client.query(`
-      CREATE UNIQUE INDEX post_wants_anon_post_unique
-      ON post_wants (anon_id, post_id)
-      WHERE anon_id IS NOT NULL
-    `);
-
     await client.query("COMMIT");
-    console.log("[bootstrap] want records checked");
+    console.log("[bootstrap] duplicate want records cleaned");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;
