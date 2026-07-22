@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react";
-import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode, type TouchEvent } from "react";
 import { useLanguage } from "../lib/i18n";
 
 type CarouselImage = {
@@ -16,6 +16,8 @@ type ImageCarouselProps = {
   showCounter?: boolean;
 };
 
+const SWIPE_THRESHOLD = 45;
+
 export default function ImageCarousel({
   images,
   className = "aspect-[4/3]",
@@ -25,6 +27,8 @@ export default function ImageCarousel({
 }: ImageCarouselProps) {
   const { t } = useLanguage();
   const [index, setIndex] = useState(0);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressNextClick = useRef(false);
 
   useEffect(() => {
     if (index >= images.length) setIndex(0);
@@ -33,16 +37,59 @@ export default function ImageCarousel({
   const hasMultiple = images.length > 1;
   const current = images[index];
 
-  function move(event: MouseEvent<HTMLButtonElement>, direction: -1 | 1) {
-    event.preventDefault();
-    event.stopPropagation();
+  function changeImage(direction: -1 | 1) {
+    if (!hasMultiple) return;
     setIndex((value) => (value + direction + images.length) % images.length);
   }
 
+  function move(event: MouseEvent<HTMLButtonElement>, direction: -1 | 1) {
+    event.preventDefault();
+    event.stopPropagation();
+    changeImage(direction);
+  }
+
+  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
+    if (!hasMultiple) return;
+    const touch = event.touches[0];
+    if (!touch) return;
+    touchStart.current = { x: touch.clientX, y: touch.clientY };
+    suppressNextClick.current = false;
+  }
+
+  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
+    const start = touchStart.current;
+    const touch = event.changedTouches[0];
+    touchStart.current = null;
+    if (!start || !touch || !hasMultiple) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    const isHorizontalSwipe = Math.abs(deltaX) >= SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY);
+    if (!isHorizontalSwipe) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    suppressNextClick.current = true;
+    changeImage(deltaX < 0 ? 1 : -1);
+  }
+
   return (
-    <div className={`relative overflow-hidden bg-sage-50 ${className}`}>
+    <div
+      className={`relative touch-pan-y select-none overflow-hidden bg-sage-50 ${className}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={() => {
+        touchStart.current = null;
+      }}
+      onClickCapture={(event) => {
+        if (!suppressNextClick.current) return;
+        event.preventDefault();
+        event.stopPropagation();
+        suppressNextClick.current = false;
+      }}
+    >
       {current ? (
-        <img src={current.url} alt={current.alt} className={imageClassName} loading="lazy" />
+        <img src={current.url} alt={current.alt} className={imageClassName} loading="lazy" draggable={false} />
       ) : (
         <div className="grid h-full min-h-56 place-items-center text-sage-300">
           <ImageIcon size={44} aria-hidden="true" />
