@@ -3,11 +3,12 @@ import { FileText, MessageSquareText, Settings, ShieldCheck, UsersRound } from "
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, Navigate } from "react-router-dom";
 import type { PublicSiteSettings } from "../../../shared/types";
+import HomeHeroImageEditor from "../components/HomeHeroImageEditor";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 
- type AdminUser = {
+type AdminUser = {
   id: number;
   username: string;
   nickname: string;
@@ -90,6 +91,17 @@ const copyByLanguage = {
     saveStatus: "更新狀態",
     noData: "目前沒有資料。",
     siteTitle: "網站名稱",
+    homeImage: "首頁橫幅圖片",
+    homeImageHelp: "顯示在導覽列與首頁標題之間。建議使用橫式圖片（約 1600 × 450），支援 JPG、PNG、WebP，單張上限 8 MB。",
+    homeImageEmpty: "目前沒有首頁圖片。",
+    homeImageUpload: "上傳圖片",
+    homeImageReplace: "更換圖片",
+    homeImageRemove: "移除圖片",
+    homeImageUploading: "上傳中…",
+    homeImageRemoving: "移除中…",
+    homeImageSaved: "首頁圖片已更新",
+    homeImageRemoved: "首頁圖片已移除",
+    homeImageFailed: "圖片處理失敗，請重新嘗試。",
     homeZh: "首頁中文",
     homeEn: "首頁英文",
     titleStart: "主標題前段",
@@ -148,6 +160,17 @@ const copyByLanguage = {
     saveStatus: "Update Status",
     noData: "No data yet.",
     siteTitle: "Site name",
+    homeImage: "Homepage banner image",
+    homeImageHelp: "Shown between the navigation and homepage headline. A wide image around 1600 × 450 is recommended. JPG, PNG, and WebP up to 8 MB are supported.",
+    homeImageEmpty: "No homepage image has been uploaded.",
+    homeImageUpload: "Upload Image",
+    homeImageReplace: "Replace Image",
+    homeImageRemove: "Remove Image",
+    homeImageUploading: "Uploading…",
+    homeImageRemoving: "Removing…",
+    homeImageSaved: "Homepage image updated",
+    homeImageRemoved: "Homepage image removed",
+    homeImageFailed: "The image could not be processed. Please try again.",
     homeZh: "Chinese homepage",
     homeEn: "English homepage",
     titleStart: "Headline opening",
@@ -401,6 +424,26 @@ function ContentEditor({ settings, copy, onSaved }: { settings: PublicSiteSettin
           <input className="field mt-2" value={form.siteTitle} maxLength={80} onChange={(event) => update("siteTitle", event.target.value)} />
         </label>
       </section>
+
+      <HomeHeroImageEditor
+        settings={form}
+        onSettingsChange={setForm}
+        onSaved={onSaved}
+        labels={{
+          title: copy.homeImage,
+          help: copy.homeImageHelp,
+          empty: copy.homeImageEmpty,
+          upload: copy.homeImageUpload,
+          replace: copy.homeImageReplace,
+          remove: copy.homeImageRemove,
+          uploading: copy.homeImageUploading,
+          removing: copy.homeImageRemoving,
+          saved: copy.homeImageSaved,
+          removed: copy.homeImageRemoved,
+          failed: copy.homeImageFailed,
+        }}
+      />
+
       <section className="card p-5 sm:p-6">
         <h2 className="text-xl font-semibold">{copy.homeZh}</h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
