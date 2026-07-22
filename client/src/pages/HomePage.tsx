@@ -2,10 +2,16 @@ import { ArrowRight, Heart, PackageOpen, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
+import { fallbackSiteSettings, useSiteSettings } from "../lib/site-settings";
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const settingsQuery = useSiteSettings();
+  const settings = settingsQuery.data?.settings ?? fallbackSiteSettings;
+  const titleStart = language === "zh" ? settings.homeTitleStartZh : settings.homeTitleStartEn;
+  const titleAccent = language === "zh" ? settings.homeTitleAccentZh : settings.homeTitleAccentEn;
+  const description = language === "zh" ? settings.homeDescriptionZh : settings.homeDescriptionEn;
 
   return (
     <>
@@ -16,9 +22,9 @@ export default function HomePage() {
           <div className="relative max-w-3xl">
             <p className="eyebrow">{t("heroEyebrow")}</p>
             <h1 className="mt-5 font-display text-5xl font-semibold leading-[0.98] text-ink-900 sm:text-7xl">
-              {t("heroTitleStart")} <span className="text-sage-600">{t("heroTitleAccent")}</span>
+              {titleStart} <span className="text-sage-600">{titleAccent}</span>
             </h1>
-            <p className="mt-7 max-w-2xl text-base leading-8 text-ink-700 sm:text-lg">{t("heroDescription")}</p>
+            <p className="mt-7 max-w-2xl text-base leading-8 text-ink-700 sm:text-lg">{description}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to={user ? "/posts/new" : "/register?next=/posts/new"} className="btn-primary">
                 {user ? t("heroPublish") : t("heroJoin")} <ArrowRight size={18} />
