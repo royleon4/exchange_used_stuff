@@ -1,7 +1,10 @@
 import { eq } from "drizzle-orm";
 import { siteSettings, users } from "../shared/schema.js";
-import { hashPassword } from "./auth.js";
+import { hashPassword, verifyPassword } from "./auth.js";
 import { db } from "./db.js";
+
+const DEFAULT_ADMIN_PASSWORD = "admin123";
+const LEGACY_ADMIN_PASSWORD = "adim123";
 
 export async function ensureInitialData(): Promise<void> {
   const [settings] = await db.select({ id: siteSettings.id }).from(siteSettings).limit(1);
@@ -11,7 +14,10 @@ export async function ensureInitialData(): Promise<void> {
   }
 
   const username = process.env.ADMIN_USERNAME?.trim().toLowerCase() || "admin";
-  const password = process.env.ADMIN_PASSWORD || "adim123";
+  const configuredPassword = process.env.ADMIN_PASSWORD?.trim();
+  const password = configuredPassword && configuredPassword !== LEGACY_ADMIN_PASSWORD
+    ? configuredPassword
+    : DEFAULT_ADMIN_PASSWORD;
   const nickname = process.env.ADMIN_NICKNAME?.trim() || "系統管理員";
 
   const [existing] = await db.select().from(users).where(eq(users.username, username)).limit(1);
@@ -27,17 +33,23 @@ export async function ensureInitialData(): Promise<void> {
     return;
   }
 
-  if (existing.role !== "admin" || !existing.isActive) {
+  const needsPromotion = existing.role !== "admin" || !existing.isActive;
+  const usesLegacyDefault = await verifyPassword(LEGACY_ADMIN_PASSWORD, existing.passwordHash);
+
+  if (needsPromotion || usesLegacyDefault) {
     await db
       .update(users)
       .set({
-        passwordHash: await hashPassword(password),
-        nickname,
-        role: "admin",
-        isActive: true,
+        ...(needsPromotion ? { nickname, role: "admin" as const, isActive: true } : {}),
+        ...(needsPromotion || usesLegacyDefault ? { passwordHash: await hashPassword(password) } : {}),
         updatedAt: new Date(),
       })
       .where(eq(users.id, existing.id));
-    console.log(`[bootstrap] existing account promoted to admin: ${username}`);
+
+    console.log(
+      usesLegacyDefault
+        ? `[bootstrap] legacy admin password migrated: ${username}`
+        : `[bootstrap] existing account promoted to admin: ${username}`,
+    );
   }
 }
