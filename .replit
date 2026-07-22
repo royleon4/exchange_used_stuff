@@ -1,14 +1,5 @@
-<<<<<<< HEAD
 [nix]
 channel = "stable-25_05"
 
 [agent]
 expertMode = true
-=======
-run = "npm run dev"
-entrypoint = "server/index.ts"
-
-[deployment]
-run = ["sh", "-c", "npm run db:push && npm run seed && npm run start"]
-build = ["sh", "-c", "npm install && npm run check && npm run build"]
->>>>>>> 31993f6140079c821f2ead887734bdd398cbe66b
