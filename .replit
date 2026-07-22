@@ -1,0 +1,6 @@
+run = "npm run dev"
+entrypoint = "server/index.ts"
+
+[deployment]
+run = ["sh", "-c", "npm run db:push && npm run seed && npm run start"]
+build = ["sh", "-c", "npm install && npm run check && npm run build"]
