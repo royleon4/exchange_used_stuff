@@ -1,0 +1,1 @@
+- [Git UI auto-rebase loop](git-ui-auto-rebase.md) — UI pull auto-rebases diverged main; abort is safe once merge commit exists; root cause is broken GitHub push auth.
