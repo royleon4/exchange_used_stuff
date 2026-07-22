@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   index,
   integer,
   pgEnum,
@@ -104,6 +106,16 @@ export const postWants = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
+    check(
+      "post_wants_actor_check",
+      sql`num_nonnulls(${table.userId}, ${table.anonId}) = 1`,
+    ),
+    uniqueIndex("post_wants_user_post_unique")
+      .on(table.userId, table.postId)
+      .where(sql`${table.userId} IS NOT NULL`),
+    uniqueIndex("post_wants_anon_post_unique")
+      .on(table.anonId, table.postId)
+      .where(sql`${table.anonId} IS NOT NULL`),
     index("post_wants_post_id_idx").on(table.postId),
     index("post_wants_created_at_idx").on(table.createdAt),
     index("post_wants_user_id_idx").on(table.userId),
