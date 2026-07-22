@@ -3,11 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import type { PublicUser } from "../../../shared/types";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useLanguage } from "../lib/i18n";
 
 export default function RegisterPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { refresh } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -27,7 +29,7 @@ export default function RegisterPage() {
       await refresh();
       navigate("/");
     } catch (value) {
-      setError(value instanceof ApiError ? value.message : "註冊失敗，請稍後再試");
+      setError(value instanceof ApiError ? value.message : "Registration failed. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -36,18 +38,32 @@ export default function RegisterPage() {
   return (
     <section className="page-shell py-12 sm:py-20">
       <div className="card mx-auto max-w-lg p-6 sm:p-9">
-        <p className="eyebrow">Join the Wall</p>
-        <h1 className="mt-3 font-display text-4xl font-semibold">建立你的婚禮暱稱</h1>
-        <p className="mt-3 text-sm leading-6 text-ink-700">其他賓客只會看到你的暱稱，不會看到登入帳號。</p>
+        <p className="eyebrow">{t("joinEyebrow")}</p>
+        <h1 className="mt-3 font-display text-4xl font-semibold">{t("joinTitle")}</h1>
+        <p className="mt-3 text-sm leading-6 text-ink-700">{t("joinDescription")}</p>
         <form className="mt-8 space-y-5" onSubmit={submit}>
-          <label className="block text-sm font-medium">暱稱<input className="field mt-2" name="nickname" minLength={2} maxLength={20} required /><span className="mt-1 block text-xs text-ink-700">將顯示在貼文與留言上</span></label>
-          <label className="block text-sm font-medium">帳號<input className="field mt-2" name="username" minLength={4} maxLength={30} autoComplete="username" required /><span className="mt-1 block text-xs text-ink-700">英文字母、數字、底線或句點</span></label>
-          <label className="block text-sm font-medium">密碼<input className="field mt-2" type="password" name="password" minLength={8} maxLength={72} autoComplete="new-password" required /></label>
-          <label className="block text-sm font-medium">婚禮邀請碼（如有）<input className="field mt-2" name="inviteCode" /></label>
+          <label className="block text-sm font-medium">
+            {t("nickname")}
+            <input className="field mt-2" name="nickname" minLength={2} maxLength={20} required />
+            <span className="mt-1 block text-xs text-ink-700">{t("nicknameHelp")}</span>
+          </label>
+          <label className="block text-sm font-medium">
+            {t("username")}
+            <input className="field mt-2" name="username" minLength={4} maxLength={30} autoComplete="username" required />
+            <span className="mt-1 block text-xs text-ink-700">{t("usernameHelp")}</span>
+          </label>
+          <label className="block text-sm font-medium">
+            {t("password")}
+            <input className="field mt-2" type="password" name="password" minLength={8} maxLength={72} autoComplete="new-password" required />
+          </label>
           {error && <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-          <button className="btn-primary w-full" disabled={submitting}>{submitting ? "建立中…" : "加入需求牆"}</button>
+          <button className="btn-primary w-full" disabled={submitting}>
+            {submitting ? t("creatingAccount") : t("joinWall")}
+          </button>
         </form>
-        <p className="mt-6 text-center text-sm text-ink-700">已經有帳號？ <Link to="/login" className="font-semibold text-sage-700">前往登入</Link></p>
+        <p className="mt-6 text-center text-sm text-ink-700">
+          {t("alreadyAccount")} <Link to="/login" className="font-semibold text-sage-700">{t("goLogin")}</Link>
+        </p>
       </div>
     </section>
   );
