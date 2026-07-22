@@ -33,6 +33,8 @@ ADMIN_PASSWORD
 ADMIN_NICKNAME
 ```
 
+未設定管理員 Secrets 時，系統預設建立帳號 `admin`、密碼 `admin123`。舊的預設密碼 `adim123` 會在網站下一次啟動時自動更新；已自行修改過的管理員密碼不會被覆蓋。
+
 本專案不使用婚禮邀請碼，也不需要 Google OAuth client secret 或 refresh token；Google 授權由 Replit Connector 管理。
 
 產生 session secret：
@@ -56,7 +58,7 @@ npm test
 npm run build
 ```
 
-`seed` 會建立站台設定；若資料庫沒有相同帳號，也會依 Secrets 建立管理員。
+`seed` 會建立站台設定；若資料庫沒有相同帳號，也會依 Secrets 或預設值建立管理員。
 
 ## 6. Deployment
 
@@ -73,7 +75,7 @@ npm run build
 - 首頁與 `/items` 都可正常顯示
 - 中／EN 切換後重新整理仍保留語言
 - 可註冊與登入
-- 管理員可登入 `/admin`
+- 管理員可用 `admin`／`admin123` 登入 `/admin`
 - 可上傳圖片，且重新啟動後仍可顯示
 - 建立貼文必須至少有一張圖片
 - 多張圖片在卡片與詳情頁可左右切換
