@@ -42,9 +42,8 @@ async function claimBrowserWants(
   userId: number,
 ): Promise<void> {
   const anonId = getAnonId(req);
-  if (!anonId) return;
   await claimAnonymousWants(userId, anonId);
-  clearAnonCookie(res);
+  if (anonId) clearAnonCookie(res);
 }
 
 router.post("/register", authLimiter, async (req, res) => {
