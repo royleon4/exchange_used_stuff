@@ -49,7 +49,7 @@ export default function HomePage() {
 
               <Link
                 to="/items"
-                className="group flex min-h-28 items-center gap-4 rounded-[2rem] border-2 border-sage-200 bg-white/90 px-5 py-5 text-left text-sage-800 shadow-md transition duration-200 hover:-translate-y-1 hover:border-sage-300 hover:bg-sage-50 hover:shadow-lg focus-visible:-translate-y-1 sm:min-h-32 sm:gap-5 sm:px-7 sm:py-6"
+                className="group flex min-h-28 items-center gap-4 rounded-[2rem] border-2 border-sage-100 bg-white/90 px-5 py-5 text-left text-sage-700 shadow-md transition duration-200 hover:-translate-y-1 hover:border-sage-300 hover:bg-sage-50 hover:shadow-lg focus-visible:-translate-y-1 sm:min-h-32 sm:gap-5 sm:px-7 sm:py-6"
               >
                 <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-sage-100 text-sage-700 sm:size-16">
                   <Heart size={28} aria-hidden="true" />
