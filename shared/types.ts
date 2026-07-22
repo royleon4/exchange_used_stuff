@@ -29,3 +29,19 @@ export type PostCard = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type PublicSiteSettings = {
+  siteTitle: string;
+  homeTitleStartZh: string;
+  homeTitleAccentZh: string;
+  homeDescriptionZh: string;
+  homeTitleStartEn: string;
+  homeTitleAccentEn: string;
+  homeDescriptionEn: string;
+  announcement: string;
+  announcementEn: string;
+  announcementEnabled: boolean;
+  registrationOpen: boolean;
+  defaultCommentsEnabled: boolean;
+  updatedAt: string;
+};
