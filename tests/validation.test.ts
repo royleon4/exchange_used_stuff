@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createPostSchema, registerSchema } from "../shared/validation";
+import {
+  changePasswordSchema,
+  createPostSchema,
+  profileUpdateSchema,
+  registerSchema,
+} from "../shared/validation";
 
 describe("registration validation", () => {
   it("normalizes usernames to lowercase", () => {
@@ -15,6 +20,20 @@ describe("registration validation", () => {
     expect(() =>
       registerSchema.parse({ username: "婚禮帳號", password: "password123", nickname: "小明" }),
     ).toThrow();
+  });
+});
+
+describe("account settings validation", () => {
+  it("trims a valid nickname", () => {
+    expect(profileUpdateSchema.parse({ nickname: "  Min  " }).nickname).toBe("Min");
+  });
+
+  it("requires the current password", () => {
+    expect(() => changePasswordSchema.parse({ currentPassword: "", newPassword: "newpassword123" })).toThrow();
+  });
+
+  it("rejects a short new password", () => {
+    expect(() => changePasswordSchema.parse({ currentPassword: "oldpassword", newPassword: "short" })).toThrow();
   });
 });
 
