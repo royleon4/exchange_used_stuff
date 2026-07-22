@@ -12,14 +12,40 @@ import {
   verifyPassword,
 } from "../auth.js";
 import { AppError } from "../middleware/error-handler.js";
+import { claimAnonymousWants } from "../services/wants.service.js";
 
 const router = Router();
+const isProduction = process.env.NODE_ENV === "production";
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+function getAnonId(req: import("express").Request): string | undefined {
+  return req.cookies?.anon_id as string | undefined;
+}
+
+function clearAnonCookie(res: import("express").Response): void {
+  res.clearCookie("anon_id", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProduction,
+    path: "/",
+  });
+}
+
+async function claimBrowserWants(
+  req: import("express").Request,
+  res: import("express").Response,
+  userId: number,
+): Promise<void> {
+  const anonId = getAnonId(req);
+  if (!anonId) return;
+  await claimAnonymousWants(userId, anonId);
+  clearAnonCookie(res);
+}
 
 router.post("/register", authLimiter, async (req, res) => {
   const input = registerSchema.parse(req.body);
@@ -42,6 +68,7 @@ router.post("/register", authLimiter, async (req, res) => {
     })
     .returning({ id: users.id, nickname: users.nickname, role: users.role });
 
+  await claimBrowserWants(req, res, created.id);
   setSessionCookie(res, created);
   res.status(201).json({ user: created });
 });
@@ -58,6 +85,7 @@ router.post("/login", authLimiter, async (req, res) => {
   }
 
   const publicUser = { id: user.id, nickname: user.nickname, role: user.role };
+  await claimBrowserWants(req, res, user.id);
   setSessionCookie(res, publicUser);
   res.json({ user: publicUser });
 });
@@ -67,7 +95,10 @@ router.post("/logout", (_req, res) => {
   res.status(204).end();
 });
 
-router.get("/me", optionalAuth, (req, res) => {
+router.get("/me", optionalAuth, async (req, res) => {
+  if (req.user) {
+    await claimBrowserWants(req, res, req.user.id);
+  }
   res.json({ user: req.user ?? null });
 });
 
