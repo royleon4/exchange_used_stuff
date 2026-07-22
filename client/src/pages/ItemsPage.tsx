@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { PackageOpen, PenLine } from "lucide-react";
+import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import type { PostCard as PostCardType } from "../../../shared/types";
 import PostCard from "../components/PostCard";
@@ -9,17 +10,38 @@ import { useLanguage } from "../lib/i18n";
 
 const sorts = new Set(["latest", "oldest", "wanted"]);
 
+type PostsPage = {
+  posts: PostCardType[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+};
+
 export default function ItemsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedSort = searchParams.get("sort") ?? "latest";
   const sort = sorts.has(requestedSort) ? requestedSort : "latest";
   const { user } = useAuth();
   const { t } = useLanguage();
-  const query = useQuery({
+  const query = useInfiniteQuery({
     queryKey: ["posts", sort],
-    queryFn: () => api<{ posts: PostCardType[] }>(`/api/posts?sort=${sort}&pageSize=24`),
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => api<PostsPage>(`/api/posts?sort=${sort}&page=${pageParam}&pageSize=30`),
+    getNextPageParam: (lastPage) => {
+      const loaded = lastPage.pagination.page * lastPage.pagination.pageSize;
+      return loaded < lastPage.pagination.total ? lastPage.pagination.page + 1 : undefined;
+    },
   });
+  const posts = query.data?.pages.flatMap((page) => page.posts) ?? [];
   const publishPath = user ? "/posts/new" : "/register?next=/posts/new";
+
+  useEffect(() => {
+    if (query.hasNextPage && !query.isFetchingNextPage) {
+      void query.fetchNextPage();
+    }
+  }, [query.hasNextPage, query.isFetchingNextPage, query.fetchNextPage]);
 
   return (
     <section className="page-shell py-12 sm:py-16">
@@ -53,7 +75,7 @@ export default function ItemsPage() {
 
       {query.isError && <div className="card mt-8 p-8 text-center text-ink-700">{t("loadItemsError")}</div>}
 
-      {query.data?.posts.length === 0 && (
+      {!query.isLoading && posts.length === 0 && (
         <div className="card mt-8 px-6 py-16 text-center">
           <PackageOpen className="mx-auto text-sage-300" size={48} />
           <h2 className="mt-5 text-xl font-semibold">{t("emptyTitle")}</h2>
@@ -64,9 +86,9 @@ export default function ItemsPage() {
         </div>
       )}
 
-      {!!query.data?.posts.length && (
+      {posts.length > 0 && (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {query.data.posts.map((post) => (
+          {posts.map((post) => (
             <PostCard key={post.id} post={post} />
           ))}
         </div>
