@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import helmet from "helmet";
 import authRoutes from "./routes/auth.routes.js";
+import wantRoutes from "./routes/wants.routes.js";
 import postRoutes from "./routes/posts.routes.js";
 import commentRoutes from "./routes/comments.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
@@ -33,6 +34,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/posts", wantRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api", commentRoutes);
 app.use("/api/uploads", uploadRoutes);

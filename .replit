@@ -38,9 +38,6 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 
-[postMerge]
-path = "scripts/post-merge.sh"
-
 [deployment]
 deploymentTarget = "autoscale"
 run = ["npm", "run", "start"]

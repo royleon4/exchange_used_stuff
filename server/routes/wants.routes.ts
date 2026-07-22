@@ -1,0 +1,75 @@
+import { randomUUID } from "node:crypto";
+import { Router } from "express";
+import { and, eq, isNull } from "drizzle-orm";
+import { posts } from "../../shared/schema.js";
+import { optionalAuth } from "../auth.js";
+import { db } from "../db.js";
+import { AppError } from "../middleware/error-handler.js";
+import { addPostWant, removePostWant } from "../services/wants.service.js";
+
+const ANON_COOKIE = "anon_id";
+const isProduction = process.env.NODE_ENV === "production";
+const router = Router();
+
+function getOrCreateAnonId(req: import("express").Request, res: import("express").Response): string {
+  const existing = req.cookies?.[ANON_COOKIE] as string | undefined;
+  if (existing) return existing;
+
+  const id = randomUUID();
+  res.cookie(ANON_COOKIE, id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProduction,
+    maxAge: 365 * 24 * 60 * 60 * 1000,
+    path: "/",
+  });
+  return id;
+}
+
+async function requireVisiblePost(postId: number): Promise<void> {
+  if (!Number.isInteger(postId) || postId <= 0) {
+    throw new AppError(400, "INVALID_POST_ID", "貼文編號不正確");
+  }
+
+  const [post] = await db
+    .select({ id: posts.id })
+    .from(posts)
+    .where(
+      and(
+        eq(posts.id, postId),
+        eq(posts.moderationStatus, "visible"),
+        isNull(posts.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!post) throw new AppError(404, "POST_NOT_FOUND", "找不到這篇貼文");
+}
+
+router.post("/:id/want", optionalAuth, async (req, res) => {
+  const postId = Number(req.params.id);
+  await requireVisiblePost(postId);
+
+  const result = await addPostWant({
+    postId,
+    userId: req.user?.id,
+    anonId: getOrCreateAnonId(req, res),
+  });
+
+  res.status(201).json(result);
+});
+
+router.delete("/:id/want", optionalAuth, async (req, res) => {
+  const postId = Number(req.params.id);
+  await requireVisiblePost(postId);
+
+  const result = await removePostWant({
+    postId,
+    userId: req.user?.id,
+    anonId: getOrCreateAnonId(req, res),
+  });
+
+  res.json(result);
+});
+
+export default router;
