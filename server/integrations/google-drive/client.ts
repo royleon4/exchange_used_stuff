@@ -1,55 +1,64 @@
 import { Readable } from "node:stream";
-import { google } from "googleapis";
+import { ReplitConnectors } from "@replit/connectors-sdk";
 
-function config() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-  const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+// 上傳目的地:Google Drive「EM婚禮後台 > 二手物交換」資料夾
+const UPLOAD_FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID ?? "1VqLH2HkuF6Jd_nomjHMQSVPy6NMroOEW";
 
-  if (!clientId || !clientSecret || !refreshToken || !folderId) {
-    throw new Error("Google Drive secrets are not fully configured");
+const connectors = new ReplitConnectors();
+
+type DriveRequestOptions = {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string | Buffer;
+};
+
+async function driveApi(path: string, options: DriveRequestOptions = {}): Promise<Response> {
+  const response = await connectors.proxy("google-drive", path, options);
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`Google Drive API ${response.status}: ${body.slice(0, 500)}`);
   }
-
-  return { clientId, clientSecret, refreshToken, folderId };
-}
-
-function driveClient() {
-  const { clientId, clientSecret, refreshToken } = config();
-  const auth = new google.auth.OAuth2(clientId, clientSecret);
-  auth.setCredentials({ refresh_token: refreshToken });
-  return google.drive({ version: "v3", auth });
+  return response;
 }
 
 export async function uploadWebp(buffer: Buffer, filename: string): Promise<string> {
-  const { folderId } = config();
-  const drive = driveClient();
-  const result = await drive.files.create({
-    requestBody: {
-      name: filename,
-      parents: [folderId],
-    },
-    media: {
-      mimeType: "image/webp",
-      body: Readable.from(buffer),
-    },
-    fields: "id",
-    supportsAllDrives: true,
-  });
+  const boundary = `boundary_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const metadata = JSON.stringify({ name: filename, parents: [UPLOAD_FOLDER_ID] });
 
-  if (!result.data.id) throw new Error("Google Drive did not return a file id");
-  return result.data.id;
+  const body = Buffer.concat([
+    Buffer.from(
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
+        `--${boundary}\r\nContent-Type: image/webp\r\n\r\n`,
+    ),
+    buffer,
+    Buffer.from(`\r\n--${boundary}--`),
+  ]);
+
+  const response = await driveApi(
+    "/upload/drive/v3/files?uploadType=multipart&fields=id&supportsAllDrives=true",
+    {
+      method: "POST",
+      headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
+      body,
+    },
+  );
+
+  const data = (await response.json()) as { id?: string };
+  if (!data.id) throw new Error("Google Drive did not return a file id");
+  return data.id;
 }
 
 export async function downloadFile(fileId: string) {
-  const drive = driveClient();
-  return drive.files.get(
-    { fileId, alt: "media", supportsAllDrives: true },
-    { responseType: "stream" },
+  const response = await driveApi(
+    `/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,
   );
+  if (!response.body) throw new Error("Google Drive returned an empty body");
+  const stream = Readable.fromWeb(response.body as import("node:stream/web").ReadableStream);
+  return { data: stream };
 }
 
 export async function deleteFile(fileId: string): Promise<void> {
-  const drive = driveClient();
-  await drive.files.delete({ fileId, supportsAllDrives: true });
+  await driveApi(`/drive/v3/files/${encodeURIComponent(fileId)}?supportsAllDrives=true`, {
+    method: "DELETE",
+  });
 }
