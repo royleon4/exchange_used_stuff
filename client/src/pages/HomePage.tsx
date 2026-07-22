@@ -20,7 +20,7 @@ export default function HomePage() {
             </h1>
             <p className="mt-7 max-w-2xl text-base leading-8 text-ink-700 sm:text-lg">{t("heroDescription")}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to={user ? "/posts/new" : "/register"} className="btn-primary">
+              <Link to={user ? "/posts/new" : "/register?next=/posts/new"} className="btn-primary">
                 {user ? t("heroPublish") : t("heroJoin")} <ArrowRight size={18} />
               </Link>
               <Link to="/items" className="btn-secondary">
