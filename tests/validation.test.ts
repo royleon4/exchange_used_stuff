@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminPostUpdateSchema,
+  adminSiteSettingsSchema,
+  adminUserUpdateSchema,
   changePasswordSchema,
   createPostSchema,
   profileUpdateSchema,
@@ -34,6 +37,32 @@ describe("account settings validation", () => {
 
   it("rejects a short new password", () => {
     expect(() => changePasswordSchema.parse({ currentPassword: "oldpassword", newPassword: "short" })).toThrow();
+  });
+});
+
+describe("admin validation", () => {
+  it("accepts member role and status changes", () => {
+    const value = adminUserUpdateSchema.parse({ nickname: "婚禮小幫手", role: "admin", isActive: true });
+    expect(value.role).toBe("admin");
+  });
+
+  it("rejects short admin-reset passwords", () => {
+    expect(() => adminUserUpdateSchema.parse({ newPassword: "short" })).toThrow();
+  });
+
+  it("accepts complete post moderation edits", () => {
+    const value = adminPostUpdateSchema.parse({
+      title: "管理員修改後的標題",
+      description: "管理員可以修正所有貼文內容與公開狀態。",
+      itemStatus: "bringing",
+      moderationStatus: "visible",
+      commentsEnabled: false,
+    });
+    expect(value.moderationStatus).toBe("visible");
+  });
+
+  it("limits announcement length", () => {
+    expect(() => adminSiteSettingsSchema.parse({ announcement: "A".repeat(501) })).toThrow();
   });
 });
 
