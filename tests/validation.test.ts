@@ -53,12 +53,13 @@ describe("admin validation", () => {
   it("accepts complete post moderation edits", () => {
     const value = adminPostUpdateSchema.parse({
       title: "管理員修改後的標題",
-      description: "管理員可以修正所有貼文內容與公開狀態。",
+      description: "",
       itemStatus: "bringing",
       moderationStatus: "visible",
       commentsEnabled: false,
     });
     expect(value.moderationStatus).toBe("visible");
+    expect(value.description).toBe("");
   });
 
   it("limits announcement length", () => {
@@ -80,6 +81,20 @@ describe("post validation", () => {
 
   it("rejects more than nine images", () => {
     expect(() => createPostSchema.parse({ ...base, imageIds: Array.from({ length: 10 }, (_, i) => i + 1) })).toThrow();
+  });
+
+  it("requires a title of at least three characters", () => {
+    expect(() => createPostSchema.parse({ ...base, title: "杯子", imageIds: [1] })).toThrow();
+  });
+
+  it("accepts an empty description", () => {
+    const value = createPostSchema.parse({ ...base, description: "", imageIds: [1] });
+    expect(value.description).toBe("");
+  });
+
+  it("accepts descriptions without a length limit", () => {
+    const longDescription = "物".repeat(5000);
+    expect(createPostSchema.parse({ ...base, description: longDescription, imageIds: [1] }).description).toHaveLength(5000);
   });
 
   it("accepts valid post input", () => {
