@@ -14,18 +14,18 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund
-      - name: Typecheck
-        id: typecheck
+      - run: npm run check
+      - name: Test
+        id: test
         continue-on-error: true
-        run: npm run check 2>&1 | tee check.log
-      - name: Upload typecheck log
+        run: npm test 2>&1 | tee test.log
+      - name: Upload test log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: typecheck-log
-          path: check.log
-      - name: Stop after typecheck failure
-        if: steps.typecheck.outcome == 'failure'
+          name: test-log
+          path: test.log
+      - name: Stop after test failure
+        if: steps.test.outcome == 'failure'
         run: exit 1
-      - run: npm test
       - run: npm run build
