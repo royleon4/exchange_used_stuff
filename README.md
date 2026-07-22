@@ -22,12 +22,12 @@
 
 ## 管理員登入
 
-管理員與一般會員共用 `/login` 入口。未設定管理員環境變數時，`npm run seed` 會建立：
+管理員與一般會員共用 `/login` 入口。網站啟動或執行 `npm run seed` 時，若缺少管理員帳號，會建立：
 
 - 帳號：`admin`
-- 密碼：`adim123`
+- 密碼：`admin123`
 
-首次登入後應立即重設為至少 8 個字元的新密碼。若設定 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 與 `ADMIN_NICKNAME`，會優先使用環境變數。
+舊版預設密碼 `adim123` 會在網站下一次啟動時自動更新為 `admin123`；已自行修改過的管理員密碼不會被覆蓋。首次登入後仍建議立即設定自己的安全密碼。若設定 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 與 `ADMIN_NICKNAME`，會優先使用環境變數；舊值 `adim123` 會視為需要遷移的舊預設值。
 
 ## 技術架構
 
@@ -61,7 +61,7 @@ npm run dev
 | `SESSION_SECRET` | Session 簽章；正式環境必填 |
 | `GOOGLE_DRIVE_FOLDER_ID` | 圖片根資料夾 ID |
 | `ADMIN_USERNAME` | 初始管理員帳號；未設定時為 `admin` |
-| `ADMIN_PASSWORD` | 初始管理員密碼；未設定時為 `adim123` |
+| `ADMIN_PASSWORD` | 初始管理員密碼；未設定時為 `admin123` |
 | `ADMIN_NICKNAME` | 初始管理員顯示暱稱 |
 
 其他：
