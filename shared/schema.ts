@@ -162,6 +162,8 @@ export const siteSettings = pgTable("site_settings", {
   homeDescriptionEn: text("home_description_en")
     .notNull()
     .default("Share an item you may bring and see whether other guests are interested. When someone taps “I want it,” you can decide with more confidence whether to bring it along."),
+  homeTitleColor: text("home_title_color").notNull().default("#2C2A25"),
+  homeTitleAccentColor: text("home_title_accent_color").notNull().default("#5A7A63"),
   homeHeroImageId: integer("home_hero_image_id").references(() => postImages.id, { onDelete: "set null" }),
   announcement: text("announcement").notNull().default(""),
   announcementEn: text("announcement_en").notNull().default(""),
