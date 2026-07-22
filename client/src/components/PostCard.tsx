@@ -49,6 +49,8 @@ export default function PostCard({ post }: { post: PostCardType }) {
       await Promise.all([
         client.invalidateQueries({ queryKey: ["posts"] }),
         client.invalidateQueries({ queryKey: ["post", String(post.id)] }),
+        client.invalidateQueries({ queryKey: ["me", "wants"] }),
+        client.invalidateQueries({ queryKey: ["me", "posts"] }),
       ]);
     },
   });
