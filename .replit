@@ -1,6 +1,12 @@
 run = "npm run dev"
 entrypoint = "server/index.ts"
 
+[nix]
+channel = "stable-25_05"
+
+[agent]
+expertMode = true
+
 [deployment]
 run = ["sh", "-c", "npm run db:push && npm run seed && npm run start"]
 build = ["sh", "-c", "npm install && npm run check && npm run build"]
