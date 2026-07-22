@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import ImageCarousel from "../components/ImageCarousel";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
+import { useLanguage } from "../lib/i18n";
 
 type PostDetail = {
   id: number;
@@ -21,16 +23,17 @@ type PostDetail = {
 };
 type Comment = { id: number; body: string; authorId: number; authorNickname: string; createdAt: string };
 
-const statusLabel = {
-  considering: "還在考慮",
-  bringing: "確定帶來",
-  not_bringing: "這次不帶",
-  closed: "已結束",
-};
+const statusKey = {
+  considering: "statusConsidering",
+  bringing: "statusBringing",
+  not_bringing: "statusNotBringing",
+  closed: "statusClosed",
+} as const;
 
 export default function PostDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { language, t } = useLanguage();
   const navigate = useNavigate();
   const client = useQueryClient();
   const [commentError, setCommentError] = useState("");
@@ -47,7 +50,12 @@ export default function PostDetailPage() {
       const method = postQuery.data?.post.currentUserWants ? "DELETE" : "POST";
       await api(`/api/posts/${id}/want`, { method });
     },
-    onSuccess: () => void client.invalidateQueries({ queryKey: ["post", id] }),
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["post", id] }),
+        client.invalidateQueries({ queryKey: ["posts"] }),
+      ]);
+    },
   });
 
   async function addComment(event: FormEvent<HTMLFormElement>) {
@@ -64,33 +72,43 @@ export default function PostDetailPage() {
       form.reset();
       await commentsQuery.refetch();
     } catch (value) {
-      setCommentError(value instanceof ApiError ? value.message : "留言失敗");
+      setCommentError(value instanceof ApiError ? value.message : t("commentFailed"));
     }
   }
 
   async function removePost() {
-    if (!window.confirm("確定刪除這篇貼文嗎？貼文會從物品牆移除。")) return;
+    if (!window.confirm(t("deleteConfirm"))) return;
     await api(`/api/posts/${id}`, { method: "DELETE" });
-    navigate("/");
+    navigate("/items");
   }
 
-  if (postQuery.isLoading) return <div className="page-shell py-20 text-center">讀取中…</div>;
-  if (!postQuery.data) return <div className="page-shell py-20 text-center">找不到這篇貼文。</div>;
+  if (postQuery.isLoading) return <div className="page-shell py-20 text-center">{t("loading")}</div>;
+  if (!postQuery.data) return <div className="page-shell py-20 text-center">{t("postNotFound")}</div>;
   const post = postQuery.data.post;
+  const locale = language === "zh" ? "zh-TW" : "en-US";
+  const carouselImages = post.images.map((image, index) => ({
+    id: image.id,
+    url: image.url,
+    alt: `${post.title} ${index + 1}`,
+  }));
 
   return (
     <section className="page-shell py-10 sm:py-16">
       <div className="grid gap-8 lg:grid-cols-[1.25fr_.75fr]">
-        <div className="space-y-4">
-          {post.images.map((image, index) => (
-            <img key={image.id} src={image.url} alt={`${post.title} 圖片 ${index + 1}`} className="card aspect-[4/3] w-full object-cover" />
-          ))}
+        <div>
+          <ImageCarousel
+            images={carouselImages}
+            className="card aspect-[4/3] w-full"
+            imageClassName="h-full w-full object-contain bg-white"
+          />
         </div>
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <div className="card p-6 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="rounded-full bg-sage-50 px-3 py-1 text-xs font-semibold text-sage-700">{statusLabel[post.itemStatus]}</span>
-              <span className="text-xs text-ink-700">{new Date(post.createdAt).toLocaleDateString("zh-TW")}</span>
+              <span className="rounded-full bg-sage-50 px-3 py-1 text-xs font-semibold text-sage-700">
+                {t(statusKey[post.itemStatus])}
+              </span>
+              <span className="text-xs text-ink-700">{new Date(post.createdAt).toLocaleDateString(locale)}</span>
             </div>
             <p className="eyebrow mt-6">{post.authorNickname}</p>
             <h1 className="mt-2 font-display text-4xl font-semibold leading-tight">{post.title}</h1>
@@ -102,38 +120,38 @@ export default function PostDetailPage() {
               disabled={want.isPending || post.isOwner}
             >
               <Heart size={18} fill={post.currentUserWants ? "currentColor" : "none"} />
-              {post.isOwner ? "這是你的貼文" : post.currentUserWants ? "取消想要" : "我想要"} · {post.wantCount}
+              {post.isOwner ? t("ownPost") : post.currentUserWants ? t("cancelWant") : t("want")} · {post.wantCount}
             </button>
             {post.isOwner && (
               <div className="mt-3 grid grid-cols-2 gap-3">
-                <Link to={`/posts/${post.id}/edit`} className="btn-secondary"><Pencil size={16} />編輯</Link>
-                <button type="button" className="btn-secondary text-red-700" onClick={() => void removePost()}><Trash2 size={16} />刪除</button>
+                <Link to={`/posts/${post.id}/edit`} className="btn-secondary"><Pencil size={16} />{t("edit")}</Link>
+                <button type="button" className="btn-secondary text-red-700" onClick={() => void removePost()}><Trash2 size={16} />{t("delete")}</button>
               </div>
             )}
           </div>
 
           <div className="card mt-5 p-6 sm:p-8">
-            <h2 className="flex items-center gap-2 text-lg font-semibold"><MessageCircle size={20} />留言</h2>
+            <h2 className="flex items-center gap-2 text-lg font-semibold"><MessageCircle size={20} />{t("comments")}</h2>
             <div className="mt-5 space-y-4">
               {commentsQuery.data?.comments.map((comment) => (
                 <div key={comment.id} className="rounded-2xl bg-cream-50 p-4">
                   <div className="flex justify-between gap-4 text-xs text-ink-700">
                     <strong className="text-sage-700">{comment.authorNickname}</strong>
-                    <span>{new Date(comment.createdAt).toLocaleString("zh-TW")}</span>
+                    <span>{new Date(comment.createdAt).toLocaleString(locale)}</span>
                   </div>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{comment.body}</p>
                 </div>
               ))}
-              {commentsQuery.data?.comments.length === 0 && <p className="text-sm text-ink-700">目前還沒有留言。</p>}
+              {commentsQuery.data?.comments.length === 0 && <p className="text-sm text-ink-700">{t("noComments")}</p>}
             </div>
             {post.commentsEnabled ? (
               <form className="mt-5" onSubmit={addComment}>
-                <textarea className="field min-h-24" name="body" maxLength={300} required placeholder="留言給發文者…" />
+                <textarea className="field min-h-24" name="body" maxLength={300} required placeholder={t("commentPlaceholder")} />
                 {commentError && <p className="mt-2 text-sm text-red-700">{commentError}</p>}
-                <button className="btn-primary mt-3">送出留言</button>
+                <button className="btn-primary mt-3">{t("sendComment")}</button>
               </form>
             ) : (
-              <p className="mt-5 rounded-2xl bg-cream-50 p-4 text-sm text-ink-700">發文者已關閉新留言。</p>
+              <p className="mt-5 rounded-2xl bg-cream-50 p-4 text-sm text-ink-700">{t("commentsClosed")}</p>
             )}
           </div>
         </aside>
