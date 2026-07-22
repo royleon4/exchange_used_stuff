@@ -14,6 +14,7 @@ export type ApiErrorPayload = {
 
 export type PostCard = {
   id: number;
+  authorId: number;
   title: string;
   description: string;
   authorNickname: string;
