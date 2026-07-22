@@ -9,7 +9,7 @@ type UploadedImage = { id: number; url: string; width: number; height: number };
 
 export default function NewPostPage() {
   const { user, isLoading } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const navigate = useNavigate();
   const [images, setImages] = useState<UploadedImage[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -112,11 +112,11 @@ export default function NewPostPage() {
 
           <label className="block text-sm font-medium">
             {t("title")} <span className="float-right font-normal text-ink-700">{title.length}/40</span>
-            <input className="field mt-2" value={title} onChange={(event) => setTitle(event.target.value)} minLength={2} maxLength={40} required placeholder={t("titlePlaceholder")} />
+            <input className="field mt-2" value={title} onChange={(event) => setTitle(event.target.value)} minLength={3} maxLength={40} required placeholder={t("titlePlaceholder")} />
           </label>
           <label className="block text-sm font-medium">
-            {t("description")} <span className="float-right font-normal text-ink-700">{description.length}/500</span>
-            <textarea className="field mt-2 min-h-36 resize-y" value={description} onChange={(event) => setDescription(event.target.value)} minLength={10} maxLength={500} required placeholder={t("descriptionPlaceholder")} />
+            {t("description")} <span className="float-right font-normal text-ink-700">{language === "zh" ? "選填・不限字數" : "Optional · no character limit"}</span>
+            <textarea className="field mt-2 min-h-36 resize-y" value={description} onChange={(event) => setDescription(event.target.value)} placeholder={t("descriptionPlaceholder")} />
           </label>
 
           <div className="grid gap-5 sm:grid-cols-2">
