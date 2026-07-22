@@ -11,6 +11,7 @@ import mediaRoutes from "./routes/media.routes.js";
 import meRoutes from "./routes/me.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import siteRoutes from "./routes/site.routes.js";
+import { ensureInitialData } from "./bootstrap.js";
 import { errorHandler } from "./middleware/error-handler.js";
 
 const app = express();
@@ -51,6 +52,14 @@ if (isProduction) {
 
 app.use(errorHandler);
 
-app.listen(port, () => {
-  console.log(`[server] listening on http://localhost:${port}`);
+async function start(): Promise<void> {
+  await ensureInitialData();
+  app.listen(port, () => {
+    console.log(`[server] listening on http://localhost:${port}`);
+  });
+}
+
+start().catch((error) => {
+  console.error("[server] startup failed", error);
+  process.exitCode = 1;
 });
