@@ -41,17 +41,21 @@ export async function runMigrations(): Promise<void> {
   try {
     await client.query("SELECT pg_advisory_lock($1::bigint)", [MIGRATION_LOCK_KEY]);
 
+    // A brand-new database must remain completely empty before Drizzle performs
+    // its first schema push. Creating app_migrations here makes Drizzle ask
+    // whether an application table was renamed from it, which cannot be answered
+    // in a non-interactive CI/deployment environment.
+    if (!(await hasPostWantsTable())) {
+      console.log("[migrate] post_wants does not exist yet; schema sync will create it");
+      return;
+    }
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS app_migrations (
         id text PRIMARY KEY,
         applied_at timestamptz NOT NULL DEFAULT now()
       )
     `);
-
-    if (!(await hasPostWantsTable())) {
-      console.log("[migrate] post_wants does not exist yet; schema sync will create it");
-      return;
-    }
 
     if (await hasWantIntegrityObjects()) {
       await client.query(
