@@ -17,6 +17,10 @@ router.get("/settings", async (_req, res) => {
       homeTitleStartEn: settings.homeTitleStartEn,
       homeTitleAccentEn: settings.homeTitleAccentEn,
       homeDescriptionEn: settings.homeDescriptionEn,
+      homeHeroImageId: settings.homeHeroImageId,
+      homeHeroImageUrl: settings.homeHeroImageId
+        ? `/api/media/${settings.homeHeroImageId}?v=${settings.updatedAt.getTime()}`
+        : null,
       announcement: settings.announcement,
       announcementEn: settings.announcementEn,
       announcementEnabled: settings.announcementEnabled,
