@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: "Noto Sans TC", sans-serif;
+  color: #2c2a25;
+  background: #f8f5ef;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(212, 227, 214, 0.5), transparent 28rem),
+    radial-gradient(circle at 92% 28%, rgba(237, 232, 223, 0.8), transparent 30rem),
+    #f8f5ef;
+}
+
+button, a, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(90, 122, 99, 0.3);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .page-shell { @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8; }
+  .card { @apply rounded-3xl border border-white/80 bg-white/90 shadow-soft backdrop-blur; }
+  .btn-primary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-sage-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sage-700 disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-secondary { @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-sage-100 bg-white px-5 py-2.5 text-sm font-semibold text-sage-700 transition hover:bg-sage-50 disabled:cursor-not-allowed disabled:opacity-50; }
+  .field { @apply w-full rounded-2xl border border-cream-200 bg-white px-4 py-3 text-ink-900 placeholder:text-ink-700/45 focus:border-sage-300 focus:outline-none focus:ring-4 focus:ring-sage-50; }
+  .eyebrow { @apply text-xs font-semibold uppercase tracking-[0.24em] text-sage-600; }
+}
