@@ -5,6 +5,7 @@ import { postImages, posts, postWants } from "../../shared/schema.js";
 import { createPostSchema, updatePostSchema } from "../../shared/validation.js";
 import { optionalAuth, requireAuth } from "../auth.js";
 import { db, pool } from "../db.js";
+import { AppError } from "../middleware/error-handler.js";
 
 const ANON_COOKIE = "anon_id";
 const isProduction = process.env.NODE_ENV === "production";
@@ -22,7 +23,6 @@ function getOrCreateAnonId(req: import("express").Request, res: import("express"
   });
   return id;
 }
-import { AppError } from "../middleware/error-handler.js";
 
 const router = Router();
 
@@ -34,6 +34,7 @@ type PostRow = {
   item_status: "considering" | "bringing" | "not_bringing" | "closed";
   comments_enabled: boolean;
   image_count: string;
+  image_ids: number[];
   cover_image_id: number | null;
   want_count: string;
   comment_count: string;
@@ -51,6 +52,7 @@ function serializePost(row: PostRow) {
     itemStatus: row.item_status,
     commentsEnabled: row.comments_enabled,
     imageCount: Number(row.image_count),
+    imageIds: row.image_ids ?? [],
     coverImageId: row.cover_image_id,
     wantCount: Number(row.want_count),
     commentCount: Number(row.comment_count),
@@ -83,6 +85,12 @@ router.get("/", optionalAuth, async (req, res) => {
       p.item_status,
       p.comments_enabled,
       COUNT(DISTINCT pi.id)::text AS image_count,
+      COALESCE(
+        (SELECT ARRAY_AGG(pi2.id ORDER BY pi2.sort_order, pi2.id)
+         FROM post_images pi2
+         WHERE pi2.post_id = p.id),
+        ARRAY[]::integer[]
+      ) AS image_ids,
       MIN(pi.id) FILTER (WHERE pi.sort_order = 0) AS cover_image_id,
       COUNT(DISTINCT pw.id)::text AS want_count,
       COUNT(DISTINCT c.id) FILTER (WHERE c.moderation_status = 'visible')::text AS comment_count,
@@ -130,6 +138,12 @@ router.get("/:id", optionalAuth, async (req, res) => {
       p.item_status,
       p.comments_enabled,
       COUNT(DISTINCT pi.id)::text AS image_count,
+      COALESCE(
+        (SELECT ARRAY_AGG(pi2.id ORDER BY pi2.sort_order, pi2.id)
+         FROM post_images pi2
+         WHERE pi2.post_id = p.id),
+        ARRAY[]::integer[]
+      ) AS image_ids,
       MIN(pi.id) FILTER (WHERE pi.sort_order = 0) AS cover_image_id,
       COUNT(DISTINCT pw.id)::text AS want_count,
       COUNT(DISTINCT c.id) FILTER (WHERE c.moderation_status = 'visible')::text AS comment_count,
