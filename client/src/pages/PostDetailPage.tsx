@@ -22,6 +22,7 @@ type PostDetail = {
   images: Array<{ id: number; url: string; width: number; height: number }>;
 };
 type Comment = { id: number; body: string; authorId: number; authorNickname: string; createdAt: string };
+type WantResult = { wanted: boolean; wantCount: number };
 
 const statusKey = {
   considering: "statusConsidering",
@@ -46,14 +47,17 @@ export default function PostDetailPage() {
     queryFn: () => api<{ comments: Comment[] }>(`/api/posts/${id}/comments`),
   });
   const want = useMutation({
-    mutationFn: async () => {
-      const method = postQuery.data?.post.currentUserWants ? "DELETE" : "POST";
-      await api(`/api/posts/${id}/want`, { method });
-    },
-    onSuccess: async () => {
+    mutationFn: async (nextWanted: boolean) => api<WantResult>(`/api/posts/${id}/want`, {
+      method: nextWanted ? "POST" : "DELETE",
+    }),
+    onSuccess: async (result) => {
+      client.setQueryData<{ post: PostDetail }>(["post", id], (current) => current
+        ? { post: { ...current.post, currentUserWants: result.wanted, wantCount: result.wantCount } }
+        : current);
       await Promise.all([
         client.invalidateQueries({ queryKey: ["post", id] }),
         client.invalidateQueries({ queryKey: ["posts"] }),
+        client.invalidateQueries({ queryKey: ["me", "wants"] }),
       ]);
     },
   });
@@ -116,7 +120,7 @@ export default function PostDetailPage() {
             <button
               type="button"
               className={post.currentUserWants ? "btn-secondary mt-7 w-full" : "btn-primary mt-7 w-full"}
-              onClick={() => want.mutate()}
+              onClick={() => want.mutate(!post.currentUserWants)}
               disabled={want.isPending || post.isOwner}
             >
               <Heart size={18} fill={post.currentUserWants ? "currentColor" : "none"} />
