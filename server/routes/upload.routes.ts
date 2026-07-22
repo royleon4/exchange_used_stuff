@@ -14,8 +14,11 @@ const upload = multer({
   limits: { fileSize: 8 * 1024 * 1024, files: 9 },
   fileFilter: (_req, file, callback) => {
     const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
-    const accepted = allowed.has(file.mimetype);
-    callback(accepted ? null : new Error("UNSUPPORTED_IMAGE_TYPE"), accepted);
+    if (!allowed.has(file.mimetype)) {
+      callback(new Error("UNSUPPORTED_IMAGE_TYPE"));
+      return;
+    }
+    callback(null, true);
   },
 });
 
