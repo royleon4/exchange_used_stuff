@@ -20,6 +20,7 @@ export type PostCard = {
   itemStatus: "considering" | "bringing" | "not_bringing" | "closed";
   commentsEnabled: boolean;
   imageCount: number;
+  imageIds: number[];
   coverImageId: number | null;
   wantCount: number;
   commentCount: number;
