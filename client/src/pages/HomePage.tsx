@@ -17,8 +17,7 @@ export default function HomePage() {
     <>
       <section className="page-shell py-14 sm:py-24">
         <div className="max-w-4xl">
-          <p className="eyebrow">{t("heroEyebrow")}</p>
-          <h1 className="mt-5 font-display text-5xl font-semibold leading-[0.98] text-ink-900 sm:text-7xl">
+          <h1 className="font-display text-5xl font-semibold leading-[0.98] text-ink-900 sm:text-7xl">
             {titleStart} <span className="text-sage-600">{titleAccent}</span>
           </h1>
           <p className="mt-7 max-w-2xl text-base leading-8 text-ink-700 sm:text-lg">{description}</p>
