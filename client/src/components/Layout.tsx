@@ -1,6 +1,6 @@
 import { Heart, LogOut, Megaphone, Menu, Plus, UserRound, X } from "lucide-react";
 import { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 import { fallbackSiteSettings, useSiteSettings } from "../lib/site-settings";
@@ -19,6 +19,8 @@ export default function Layout() {
   const settings = settingsQuery.data?.settings ?? fallbackSiteSettings;
   const announcement = language === "zh" ? settings.announcement : settings.announcementEn;
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHomePage = location.pathname === "/";
 
   async function handleLogout() {
     await logout();
@@ -27,8 +29,8 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-white/70 bg-cream-50/85 backdrop-blur-xl">
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-40 shrink-0 border-b border-white/70 bg-cream-50/85 backdrop-blur-xl">
         <div className="page-shell flex min-h-16 items-center justify-between gap-4 py-2">
           <Link to="/" className="group flex items-center gap-3" onClick={() => setOpen(false)}>
             <span className="grid size-10 place-items-center rounded-full bg-sage-600 text-white shadow-sm transition group-hover:rotate-6">
@@ -111,15 +113,17 @@ export default function Layout() {
         )}
       </header>
 
-      <main><Outlet /></main>
+      <main className={isHomePage ? "flex min-h-0 flex-1" : "flex-1"}><Outlet /></main>
 
-      <footer className="mt-20 border-t border-white/70 py-10">
-        <div className="page-shell text-center text-sm text-ink-700">
-          <p className="font-display text-2xl text-ink-900">{settings.siteTitle}</p>
-          <p className="mt-2">{t("footerTagline")}</p>
-          <p className="mt-4 text-xs">{t("footerDisclaimer")}</p>
-        </div>
-      </footer>
+      {!isHomePage && (
+        <footer className="mt-20 border-t border-white/70 py-10">
+          <div className="page-shell text-center text-sm text-ink-700">
+            <p className="font-display text-2xl text-ink-900">{settings.siteTitle}</p>
+            <p className="mt-2">{t("footerTagline")}</p>
+            <p className="mt-4 text-xs">{t("footerDisclaimer")}</p>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
