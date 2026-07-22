@@ -4,7 +4,6 @@ import {
   integer,
   pgEnum,
   pgTable,
-  primaryKey,
   serial,
   text,
   timestamp,
@@ -139,7 +138,21 @@ export const comments = pgTable(
 export const siteSettings = pgTable("site_settings", {
   id: serial("id").primaryKey(),
   siteTitle: text("site_title").notNull().default("Excel & Min 二手物品需求牆"),
+  homeTitleStartZh: text("home_title_start_zh").notNull().default("讓好物在婚禮這天，"),
+  homeTitleAccentZh: text("home_title_accent_zh").notNull().default("遇見下一個喜歡它的人。"),
+  homeDescriptionZh: text("home_description_zh")
+    .notNull()
+    .default("先把你可能帶來的二手物品放上來，看看有沒有賓客感興趣。有人按「我想要」，你就能更安心地決定要不要把它帶到現場。"),
+  homeTitleStartEn: text("home_title_start_en").notNull().default("Let a well-loved item"),
+  homeTitleAccentEn: text("home_title_accent_en")
+    .notNull()
+    .default("find its next admirer at our wedding."),
+  homeDescriptionEn: text("home_description_en")
+    .notNull()
+    .default("Share an item you may bring and see whether other guests are interested. When someone taps “I want it,” you can decide with more confidence whether to bring it along."),
   announcement: text("announcement").notNull().default(""),
+  announcementEn: text("announcement_en").notNull().default(""),
+  announcementEnabled: boolean("announcement_enabled").notNull().default(false),
   registrationOpen: boolean("registration_open").notNull().default(true),
   defaultCommentsEnabled: boolean("default_comments_enabled").notNull().default(true),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -160,3 +173,4 @@ export type User = typeof users.$inferSelect;
 export type Post = typeof posts.$inferSelect;
 export type PostImage = typeof postImages.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
+export type SiteSettings = typeof siteSettings.$inferSelect;
