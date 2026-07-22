@@ -14,7 +14,7 @@ export default function HomePage() {
   const description = language === "zh" ? settings.homeDescriptionZh : settings.homeDescriptionEn;
 
   return (
-    <section className="page-shell flex w-full flex-1 flex-col justify-center py-[clamp(1rem,4vh,3rem)]">
+    <section className="page-shell flex w-full flex-1 -translate-y-3 flex-col justify-center py-[clamp(1rem,4vh,3rem)] sm:-translate-y-4">
       <div className="max-w-4xl">
         <h1 className="font-display text-[clamp(2.6rem,7vw,4.5rem)] font-semibold leading-[0.98] text-ink-900">
           {titleStart} <span className="text-sage-600">{titleAccent}</span>
@@ -24,7 +24,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      <div className="mt-[clamp(1.25rem,3.5vh,3rem)] grid gap-3 md:grid-cols-2 sm:gap-4">
+      <div className="mt-[clamp(1.25rem,3.5vh,3rem)] grid gap-3 sm:gap-4 md:grid-cols-2">
         <Link
           to={user ? "/posts/new" : "/register?next=/posts/new"}
           className="group flex min-h-24 items-center gap-3 rounded-[1.75rem] bg-sage-600 px-4 py-4 text-left text-white shadow-lg shadow-sage-600/20 transition duration-200 hover:-translate-y-1 hover:bg-sage-700 hover:shadow-xl focus-visible:-translate-y-1 sm:min-h-28 sm:gap-4 sm:rounded-[2rem] sm:px-6 sm:py-5"
