@@ -3,7 +3,6 @@ dist/
 .env
 .env.*
 !.env.example
-.replit.nix
 coverage/
 *.log
 .DS_Store
