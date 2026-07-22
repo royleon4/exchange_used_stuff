@@ -14,7 +14,7 @@ export default function HomePage() {
   const description = language === "zh" ? settings.homeDescriptionZh : settings.homeDescriptionEn;
 
   return (
-    <section className="page-shell flex w-full flex-1 -translate-y-3 flex-col justify-center py-[clamp(1rem,4vh,3rem)] sm:-translate-y-4">
+    <section className="page-shell flex w-full flex-1 flex-col justify-start pb-[clamp(0.75rem,2vh,1.5rem)] pt-[clamp(1.25rem,3vh,2rem)]">
       <div className="max-w-4xl">
         <h1 className="font-display text-[clamp(2.6rem,7vw,4.5rem)] font-semibold leading-[0.98] text-ink-900">
           {titleStart} <span className="text-sage-600">{titleAccent}</span>
