@@ -15,7 +15,16 @@ localPort = 5000
 externalPort = 80
 
 [workflows]
-runButton = "Start application"
+runButton = "Dev"
+
+[[workflows.workflow]]
+name = "Dev"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -31,7 +40,6 @@ outputType = "webview"
 
 [postMerge]
 path = "scripts/post-merge.sh"
-timeoutMs = 180000
 
 [deployment]
 deploymentTarget = "autoscale"
