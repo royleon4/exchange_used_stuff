@@ -29,11 +29,24 @@ export default function Layout() {
     const previousBodyOverflow = document.body.style.overflow;
     const previousBodyOverscroll = document.body.style.overscrollBehavior;
 
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    document.body.style.overscrollBehavior = "none";
+    // 只在桌機(md 以上)鎖定捲動;手機讓內容自然捲動,避免被裁切
+    const media = window.matchMedia("(min-width: 768px)");
+    const applyLock = () => {
+      if (media.matches) {
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.overflow = "hidden";
+        document.body.style.overscrollBehavior = "none";
+      } else {
+        document.documentElement.style.overflow = previousHtmlOverflow;
+        document.body.style.overflow = previousBodyOverflow;
+        document.body.style.overscrollBehavior = previousBodyOverscroll;
+      }
+    };
+    applyLock();
+    media.addEventListener("change", applyLock);
 
     return () => {
+      media.removeEventListener("change", applyLock);
       document.documentElement.style.overflow = previousHtmlOverflow;
       document.body.style.overflow = previousBodyOverflow;
       document.body.style.overscrollBehavior = previousBodyOverscroll;
@@ -47,7 +60,7 @@ export default function Layout() {
   }
 
   return (
-    <div className={isHomePage ? "flex h-[100dvh] min-h-0 flex-col overflow-hidden overscroll-none" : "flex min-h-screen flex-col"}>
+    <div className={isHomePage ? "flex min-h-[100dvh] flex-col md:h-[100dvh] md:min-h-0 md:overflow-hidden md:overscroll-none" : "flex min-h-screen flex-col"}>
       <header className="sticky top-0 z-40 shrink-0 border-b border-white/70 bg-cream-50/85 backdrop-blur-xl">
         <div className="page-shell flex min-h-16 items-center justify-between gap-4 py-2">
           <Link to="/" className="group flex items-center gap-3" onClick={() => setOpen(false)}>
@@ -131,7 +144,7 @@ export default function Layout() {
         )}
       </header>
 
-      <main className={isHomePage ? "flex min-h-0 flex-1 overflow-hidden" : "flex-1"}><Outlet /></main>
+      <main className={isHomePage ? "flex flex-1 md:min-h-0 md:overflow-hidden" : "flex-1"}><Outlet /></main>
 
       {!isHomePage && (
         <footer className="mt-20 border-t border-white/70 py-10">

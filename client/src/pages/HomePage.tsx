@@ -14,7 +14,7 @@ export default function HomePage() {
   const description = language === "zh" ? settings.homeDescriptionZh : settings.homeDescriptionEn;
 
   return (
-    <section className="page-shell flex h-full min-h-0 w-full flex-1 -translate-y-[clamp(0.35rem,1.5dvh,1rem)] flex-col justify-center overflow-hidden py-[clamp(0.5rem,1.5dvh,1.25rem)]">
+    <section className="page-shell flex w-full flex-1 flex-col justify-center py-6 md:h-full md:min-h-0 md:-translate-y-[clamp(0.35rem,1.5dvh,1rem)] md:overflow-hidden md:py-[clamp(0.5rem,1.5dvh,1.25rem)]">
       {settings.homeHeroImageUrl && (
         <div className="mb-[clamp(0.45rem,1.4dvh,1rem)] flex min-h-0 shrink items-center justify-center py-[clamp(0.35rem,1dvh,0.75rem)]">
           <img
