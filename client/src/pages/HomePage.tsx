@@ -27,10 +27,10 @@ export default function HomePage() {
       )}
 
       <div className="max-w-4xl">
-        <h1 className="font-display text-[clamp(2.05rem,5.9vmin,4.25rem)] font-semibold leading-[0.98] text-ink-900">
+        <h1 className="font-display text-[clamp(2.3625rem,calc(5.9vmin+5px),4.5625rem)] font-semibold leading-[0.98] text-ink-900">
           {titleStart} <span className="text-sage-600">{titleAccent}</span>
         </h1>
-        <p className="mt-[clamp(0.65rem,1.8dvh,1.35rem)] max-w-2xl text-[clamp(0.78rem,1.55vmin,1.075rem)] leading-[1.5] text-ink-700">
+        <p className="mt-[clamp(0.65rem,1.8dvh,1.35rem)] max-w-2xl text-[clamp(0.9675rem,calc(1.55vmin+3px),1.2625rem)] leading-[1.5] text-ink-700">
           {description}
         </p>
       </div>
@@ -44,10 +44,10 @@ export default function HomePage() {
             <PackageOpen className="size-[clamp(1.3rem,2.8vmin,1.55rem)]" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[clamp(0.92rem,2.05vmin,1.2rem)] font-bold">
+            <span className="block text-[clamp(1.1075rem,calc(2.05vmin+3px),1.3875rem)] font-bold">
               {user ? t("heroPublish") : t("heroJoin")}
             </span>
-            <span className="mt-1 block text-[clamp(0.7rem,1.4vmin,0.85rem)] leading-[1.42] text-white/80">
+            <span className="mt-1 block text-[clamp(0.8875rem,calc(1.4vmin+3px),1.0375rem)] leading-[1.42] text-white/80">
               {t("newPostDescription")}
             </span>
           </span>
@@ -62,8 +62,8 @@ export default function HomePage() {
             <Heart className="size-[clamp(1.3rem,2.8vmin,1.55rem)]" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[clamp(0.92rem,2.05vmin,1.2rem)] font-bold text-ink-900">{t("heroBrowse")}</span>
-            <span className="mt-1 block text-[clamp(0.7rem,1.4vmin,0.85rem)] leading-[1.42] text-ink-700">
+            <span className="block text-[clamp(1.1075rem,calc(2.05vmin+3px),1.3875rem)] font-bold text-ink-900">{t("heroBrowse")}</span>
+            <span className="mt-1 block text-[clamp(0.8875rem,calc(1.4vmin+3px),1.0375rem)] leading-[1.42] text-ink-700">
               {t("itemsDescription")}
             </span>
           </span>
