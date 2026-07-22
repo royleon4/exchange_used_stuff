@@ -51,7 +51,7 @@ export default function HomeHeroImageEditor({ settings, labels, onSettingsChange
     mutationFn: async (file: File) => {
       const body = new FormData();
       body.append("images", file);
-      const uploaded = await api<{ images: Array<{ id: number }> }>("/api/upload/images", {
+      const uploaded = await api<{ images: Array<{ id: number }> }>("/api/uploads/images?purpose=hero", {
         method: "POST",
         body,
       });
