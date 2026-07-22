@@ -47,7 +47,7 @@
         <% if (user) { %>
           <a href="/listings/new" class="btn btn-primary">Post an Item</a>
         <% } else { %>
-          <a href="/signup" class="btn btn-primary">Sign up to post</a>
+          <a href="<%= loginUrl %>" class="btn btn-primary">Log in with Replit to post</a>
         <% } %>
       </div>
     <% } else { %>

@@ -11,9 +11,8 @@ localPort = 3001
 externalPort = 3001
 
 [[ports]]
-localPort = 5173
+localPort = 5000
 externalPort = 80
-exposeLocalhost = true
 
 [workflows]
 runButton = "Dev"
@@ -35,6 +34,18 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5173
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "Legacy App"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run legacy"
+waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"

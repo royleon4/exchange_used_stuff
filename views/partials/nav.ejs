@@ -7,14 +7,18 @@
         <a href="/listings/new" class="btn btn-primary btn-sm">+ Post Item</a>
         <a href="/messages/inbox">Inbox</a>
         <div class="nav-user">
-          <span>👤 <%= user.username %></span>
+          <span>
+            <% if (user.profileImage) { %>
+              <img src="<%= user.profileImage %>" alt="" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;" />
+            <% } else { %>👤<% } %>
+            <%= user.username %>
+          </span>
           <form method="POST" action="/logout" style="display:inline">
             <button type="submit" class="btn-link">Log out</button>
           </form>
         </div>
       <% } else { %>
-        <a href="/login">Log in</a>
-        <a href="/signup" class="btn btn-primary btn-sm">Sign up</a>
+        <a href="<%= loginUrl %>" class="btn btn-primary btn-sm">Log in with Replit</a>
       <% } %>
     </div>
   </div>

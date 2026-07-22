@@ -35,18 +35,59 @@ app.use(session({
 // Flash messages
 app.use(flash());
 
+// Replit Auth middleware — reads the authenticated Replit user from request
+// headers (set by Replit's proxy) and upserts them into users.db so listings
+// and messages can keep referencing internal _id values.
+const db = require('./db.cjs');
+app.use(async (req, res, next) => {
+  req.user = null;
+
+  const replitUserId = req.get('X-Replit-User-Id');
+  const replitUserName = req.get('X-Replit-User-Name');
+
+  if (replitUserId && replitUserName) {
+    try {
+      let user = await db.users.findOne({ replitUserId });
+      const profileImage = req.get('X-Replit-User-Profile-Image') || null;
+
+      if (!user) {
+        user = await db.users.insert({
+          replitUserId,
+          username: replitUserName,
+          profileImage,
+          createdAt: new Date()
+        });
+      } else if (user.username !== replitUserName || user.profileImage !== profileImage) {
+        await db.users.update(
+          { _id: user._id },
+          { $set: { username: replitUserName, profileImage } }
+        );
+        user.username = replitUserName;
+        user.profileImage = profileImage;
+      }
+
+      req.user = user;
+    } catch (err) {
+      console.error('Failed to sync Replit user:', err);
+    }
+  }
+
+  next();
+});
+
 // Locals middleware
 app.use((req, res, next) => {
-  res.locals.user = req.session.user || null;
+  res.locals.user = req.user;
+  res.locals.loginUrl = 'https://replit.com/auth_with_repl_site?domain=' + encodeURIComponent(req.get('host') || '');
   res.locals.success = req.flash('success');
   res.locals.error = req.flash('error');
   next();
 });
 
 // Routes
-const authRoutes = require('./routes/auth');
-const listingRoutes = require('./routes/listings');
-const messageRoutes = require('./routes/messages');
+const authRoutes = require('./routes/auth.cjs');
+const listingRoutes = require('./routes/listings.cjs');
+const messageRoutes = require('./routes/messages.cjs');
 
 app.use('/', authRoutes);
 app.use('/listings', listingRoutes);

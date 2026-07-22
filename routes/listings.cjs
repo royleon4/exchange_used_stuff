@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const db = require('../db');
+const db = require('../db.cjs');
 
 // Multer setup
 const storage = multer.diskStorage({
@@ -22,9 +22,9 @@ const upload = multer({
 });
 
 function requireAuth(req, res, next) {
-  if (!req.session.user) {
-    req.flash('error', 'Please log in first.');
-    return res.redirect('/login');
+  if (!req.user) {
+    req.flash('error', 'Please log in with Replit first.');
+    return res.redirect('https://replit.com/auth_with_repl_site?domain=' + encodeURIComponent(req.get('host') || ''));
   }
   next();
 }
@@ -84,7 +84,7 @@ router.post('/', requireAuth, upload.single('image'), async (req, res) => {
       category: category || 'Other',
       location: location || '',
       imageUrl: req.file ? '/uploads/' + req.file.filename : null,
-      userId: req.session.user._id,
+      userId: req.user._id,
       createdAt: new Date()
     });
 
@@ -111,7 +111,7 @@ router.get('/:id', async (req, res) => {
 
     // Load messages for this listing (if viewer is owner)
     let messages = [];
-    if (req.session.user && req.session.user._id === listing.userId) {
+    if (req.user && req.user._id === listing.userId) {
       messages = await db.messages.find({ listingId: listing._id }).sort({ createdAt: -1 });
       const senderIds = [...new Set(messages.map(m => m.senderId))];
       const senders = await db.users.find({ _id: { $in: senderIds } });
@@ -132,7 +132,7 @@ router.get('/:id', async (req, res) => {
 router.get('/:id/edit', requireAuth, async (req, res) => {
   try {
     const listing = await db.listings.findOne({ _id: req.params.id });
-    if (!listing || listing.userId !== req.session.user._id) {
+    if (!listing || listing.userId !== req.user._id) {
       req.flash('error', 'Not authorized.');
       return res.redirect('/listings');
     }
@@ -148,7 +148,7 @@ router.post('/:id/edit', requireAuth, upload.single('image'), async (req, res) =
   const { title, description, price, type, category, location } = req.body;
   try {
     const listing = await db.listings.findOne({ _id: req.params.id });
-    if (!listing || listing.userId !== req.session.user._id) {
+    if (!listing || listing.userId !== req.user._id) {
       req.flash('error', 'Not authorized.');
       return res.redirect('/listings');
     }
@@ -177,7 +177,7 @@ router.post('/:id/edit', requireAuth, upload.single('image'), async (req, res) =
 router.post('/:id/delete', requireAuth, async (req, res) => {
   try {
     const listing = await db.listings.findOne({ _id: req.params.id });
-    if (!listing || listing.userId !== req.session.user._id) {
+    if (!listing || listing.userId !== req.user._id) {
       req.flash('error', 'Not authorized.');
       return res.redirect('/listings');
     }

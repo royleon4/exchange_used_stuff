@@ -12,7 +12,8 @@ const fs = require('fs');
 if (!fs.existsSync('data')) fs.mkdirSync('data');
 
 // Create indexes
-db.users.ensureIndex({ fieldName: 'email', unique: true });
+db.users.ensureIndex({ fieldName: 'email', unique: true, sparse: true });
+db.users.ensureIndex({ fieldName: 'replitUserId', unique: true, sparse: true });
 db.listings.ensureIndex({ fieldName: 'createdAt' });
 db.messages.ensureIndex({ fieldName: 'listingId' });
 

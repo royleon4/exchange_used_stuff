@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const db = require('../db.cjs');
 
 function requireAuth(req, res, next) {
-  if (!req.session.user) {
-    req.flash('error', 'Please log in to send messages.');
-    return res.redirect('/login');
+  if (!req.user) {
+    req.flash('error', 'Please log in with Replit to send messages.');
+    return res.redirect('https://replit.com/auth_with_repl_site?domain=' + encodeURIComponent(req.get('host') || ''));
   }
   next();
 }
@@ -26,14 +26,14 @@ router.post('/', requireAuth, async (req, res) => {
       return res.redirect('/listings');
     }
 
-    if (listing.userId === req.session.user._id) {
+    if (listing.userId === req.user._id) {
       req.flash('error', 'You cannot message yourself.');
       return res.redirect('/listings/' + listingId);
     }
 
     await db.messages.insert({
       listingId,
-      senderId: req.session.user._id,
+      senderId: req.user._id,
       recipientId: listing.userId,
       content: content.trim(),
       createdAt: new Date()
@@ -51,7 +51,7 @@ router.post('/', requireAuth, async (req, res) => {
 // GET /messages/inbox — view received messages
 router.get('/inbox', requireAuth, async (req, res) => {
   try {
-    const messages = await db.messages.find({ recipientId: req.session.user._id }).sort({ createdAt: -1 });
+    const messages = await db.messages.find({ recipientId: req.user._id }).sort({ createdAt: -1 });
 
     const listingIds = [...new Set(messages.map(m => m.listingId))];
     const senderIds = [...new Set(messages.map(m => m.senderId))];

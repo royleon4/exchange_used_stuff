@@ -65,7 +65,7 @@
             </div>
           <% } else { %>
             <div class="contact-box contact-box-guest">
-              <p><a href="/login">Log in</a> or <a href="/signup">sign up</a> to contact the <%= listing.type === 'give_away' ? 'giver' : 'seller' %>.</p>
+              <p><a href="<%= loginUrl %>">Log in with Replit</a> to contact the <%= listing.type === 'give_away' ? 'giver' : 'seller' %>.</p>
             </div>
           <% } %>
         </div>
