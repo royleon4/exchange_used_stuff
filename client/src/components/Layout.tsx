@@ -63,12 +63,12 @@ export default function Layout() {
     <div className={isHomePage ? "flex min-h-[100dvh] flex-col md:h-[100dvh] md:min-h-0 md:overflow-hidden md:overscroll-none" : "flex min-h-screen flex-col"}>
       <header className="sticky top-0 z-40 shrink-0 border-b border-white/70 bg-cream-50/85 backdrop-blur-xl">
         <div className="page-shell flex min-h-16 items-center justify-between gap-4 py-2">
-          <Link to="/" className="group flex items-center gap-3" onClick={() => setOpen(false)}>
-            <span className="grid size-10 place-items-center rounded-full bg-sage-600 text-white shadow-sm transition group-hover:rotate-6">
+          <Link to="/" className="group flex items-center gap-2 sm:gap-3" onClick={() => setOpen(false)}>
+            <span className="grid size-9 place-items-center rounded-full bg-sage-600 text-white shadow-sm transition group-hover:rotate-6 sm:size-10">
               <Heart size={18} fill="currentColor" />
             </span>
             <span>
-              <span className="block font-display text-xl font-semibold leading-none text-ink-900">Excel & Min</span>
+              <span className="block font-display text-lg font-semibold leading-none text-ink-900 sm:text-xl">Excel & Min</span>
               <span className="mt-1 block text-[10px] tracking-[0.13em] text-ink-700 sm:text-[11px]">{t("brandSubtitle")}</span>
             </span>
           </Link>
@@ -102,7 +102,7 @@ export default function Layout() {
             <LanguageSwitcher compact />
             <button
               type="button"
-              className="grid size-11 place-items-center rounded-full bg-white"
+              className="grid size-10 place-items-center rounded-full bg-white sm:size-11"
               onClick={() => setOpen((value) => !value)}
               aria-label={open ? "Close menu" : "Open menu"}
             >

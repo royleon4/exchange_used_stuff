@@ -28,13 +28,13 @@ export default function HomePage() {
 
       <div className="max-w-4xl">
         <h1
-          className="font-display text-[clamp(2.3625rem,calc(5.9vmin+5px),4.5625rem)] font-semibold leading-[0.98]"
+          className="font-display text-[clamp(1.6rem,calc(5.9vmin+5px),4.5625rem)] font-semibold leading-[1.05] md:leading-[0.98]"
           style={{ color: settings.homeTitleColor }}
         >
           {titleStart}{" "}
           <span style={{ color: settings.homeTitleAccentColor }}>{titleAccent}</span>
         </h1>
-        <p className="mt-[clamp(0.65rem,1.8dvh,1.35rem)] max-w-2xl text-[clamp(0.9675rem,calc(1.55vmin+3px),1.2625rem)] leading-[1.5] text-ink-700">
+        <p className="mt-[clamp(0.65rem,1.8dvh,1.35rem)] max-w-2xl text-[clamp(0.8125rem,calc(1.55vmin+4px),1.2625rem)] leading-[1.5] text-ink-700">
           {description}
         </p>
       </div>
@@ -42,36 +42,36 @@ export default function HomePage() {
       <div className="mt-[clamp(0.8rem,2.5dvh,2.1rem)] grid gap-[clamp(0.5rem,1.3dvh,0.9rem)] md:grid-cols-2">
         <Link
           to={user ? "/posts/new" : "/register?next=/posts/new"}
-          className="group flex min-h-[clamp(5rem,12dvh,6.75rem)] items-center gap-[clamp(0.6rem,1.8vw,0.95rem)] rounded-[clamp(1.35rem,2.8vw,1.9rem)] bg-sage-600 px-[clamp(0.85rem,2.3vw,1.4rem)] py-[clamp(0.7rem,1.8dvh,1.15rem)] text-left text-white shadow-lg shadow-sage-600/20 transition duration-200 hover:-translate-y-1 hover:bg-sage-700 hover:shadow-xl focus-visible:-translate-y-1"
+          className="group flex min-h-[clamp(4rem,12dvh,6.75rem)] items-center gap-[clamp(0.55rem,1.8vw,0.95rem)] rounded-[clamp(1.1rem,2.8vw,1.9rem)] bg-sage-600 px-[clamp(0.75rem,2.3vw,1.4rem)] py-[clamp(0.6rem,1.8dvh,1.15rem)] text-left text-white shadow-lg shadow-sage-600/20 transition duration-200 hover:-translate-y-1 hover:bg-sage-700 hover:shadow-xl focus-visible:-translate-y-1"
         >
-          <span className="grid size-[clamp(2.65rem,5.5vmin,3.35rem)] shrink-0 place-items-center rounded-2xl bg-white/15">
-            <PackageOpen className="size-[clamp(1.3rem,2.8vmin,1.55rem)]" aria-hidden="true" />
+          <span className="grid size-[clamp(2.15rem,5.5vmin,3.35rem)] shrink-0 place-items-center rounded-2xl bg-white/15">
+            <PackageOpen className="size-[clamp(1.05rem,2.8vmin,1.55rem)]" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[clamp(1.1075rem,calc(2.05vmin+3px),1.3875rem)] font-bold">
+            <span className="block text-[clamp(0.95rem,calc(2.05vmin+3px),1.3875rem)] font-bold">
               {user ? t("heroPublish") : t("heroJoin")}
             </span>
-            <span className="mt-1 block text-[clamp(0.8875rem,calc(1.4vmin+3px),1.0375rem)] leading-[1.42] text-white/80">
+            <span className="mt-1 block text-[clamp(0.75rem,calc(1.4vmin+4px),1.0375rem)] leading-[1.42] text-white/80">
               {t("newPostDescription")}
             </span>
           </span>
-          <ArrowRight className="size-[clamp(1.15rem,2.6vmin,1.35rem)] shrink-0 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+          <ArrowRight className="size-[clamp(0.95rem,2.6vmin,1.35rem)] shrink-0 transition-transform group-hover:translate-x-1" aria-hidden="true" />
         </Link>
 
         <Link
           to="/items"
-          className="group flex min-h-[clamp(5rem,12dvh,6.75rem)] items-center gap-[clamp(0.6rem,1.8vw,0.95rem)] rounded-[clamp(1.35rem,2.8vw,1.9rem)] border-2 border-sage-100 bg-white/90 px-[clamp(0.85rem,2.3vw,1.4rem)] py-[clamp(0.7rem,1.8dvh,1.15rem)] text-left text-sage-700 shadow-md transition duration-200 hover:-translate-y-1 hover:border-sage-300 hover:bg-sage-50 hover:shadow-lg focus-visible:-translate-y-1"
+          className="group flex min-h-[clamp(4rem,12dvh,6.75rem)] items-center gap-[clamp(0.55rem,1.8vw,0.95rem)] rounded-[clamp(1.1rem,2.8vw,1.9rem)] border-2 border-sage-100 bg-white/90 px-[clamp(0.75rem,2.3vw,1.4rem)] py-[clamp(0.6rem,1.8dvh,1.15rem)] text-left text-sage-700 shadow-md transition duration-200 hover:-translate-y-1 hover:border-sage-300 hover:bg-sage-50 hover:shadow-lg focus-visible:-translate-y-1"
         >
-          <span className="grid size-[clamp(2.65rem,5.5vmin,3.35rem)] shrink-0 place-items-center rounded-2xl bg-sage-100 text-sage-700">
-            <Heart className="size-[clamp(1.3rem,2.8vmin,1.55rem)]" aria-hidden="true" />
+          <span className="grid size-[clamp(2.15rem,5.5vmin,3.35rem)] shrink-0 place-items-center rounded-2xl bg-sage-100 text-sage-700">
+            <Heart className="size-[clamp(1.05rem,2.8vmin,1.55rem)]" aria-hidden="true" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[clamp(1.1075rem,calc(2.05vmin+3px),1.3875rem)] font-bold text-ink-900">{t("heroBrowse")}</span>
-            <span className="mt-1 block text-[clamp(0.8875rem,calc(1.4vmin+3px),1.0375rem)] leading-[1.42] text-ink-700">
+            <span className="block text-[clamp(0.95rem,calc(2.05vmin+3px),1.3875rem)] font-bold text-ink-900">{t("heroBrowse")}</span>
+            <span className="mt-1 block text-[clamp(0.75rem,calc(1.4vmin+4px),1.0375rem)] leading-[1.42] text-ink-700">
               {t("itemsDescription")}
             </span>
           </span>
-          <ArrowRight className="size-[clamp(1.15rem,2.6vmin,1.35rem)] shrink-0 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+          <ArrowRight className="size-[clamp(0.95rem,2.6vmin,1.35rem)] shrink-0 transition-transform group-hover:translate-x-1" aria-hidden="true" />
         </Link>
       </div>
     </section>
