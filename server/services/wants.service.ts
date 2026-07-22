@@ -110,10 +110,13 @@ export async function claimAnonymousWants(userId: number, anonId?: string): Prom
       await lockPostWant(client, postId);
       await client.query(
         `INSERT INTO post_wants (user_id, post_id, created_at)
-         SELECT $1, post_id, MIN(created_at)
-         FROM post_wants
-         WHERE anon_id = $2 AND post_id = $3
-         GROUP BY post_id
+         SELECT $1, pw.post_id, MIN(pw.created_at)
+         FROM post_wants pw
+         JOIN posts p ON p.id = pw.post_id
+         WHERE pw.anon_id = $2
+           AND pw.post_id = $3
+           AND p.author_id <> $1
+         GROUP BY pw.post_id
          ON CONFLICT (user_id, post_id) WHERE user_id IS NOT NULL DO NOTHING`,
         [userId, anonId, postId],
       );
