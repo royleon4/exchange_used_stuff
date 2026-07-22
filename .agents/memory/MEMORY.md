@@ -1,1 +1,0 @@
-- [Replit Auth approach](replit-auth-approach.md) — no official npm package; use X-Replit-User-* headers + auth_with_repl_site redirect.
