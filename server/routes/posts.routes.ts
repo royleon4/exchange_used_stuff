@@ -28,6 +28,7 @@ const router = Router();
 
 type PostRow = {
   id: number;
+  author_id: number;
   title: string;
   description: string;
   author_nickname: string;
@@ -46,6 +47,7 @@ type PostRow = {
 function serializePost(row: PostRow) {
   return {
     id: row.id,
+    authorId: row.author_id,
     title: row.title,
     description: row.description,
     authorNickname: row.author_nickname,
@@ -79,6 +81,7 @@ router.get("/", optionalAuth, async (req, res) => {
   const result = await pool.query<PostRow>(
     `SELECT
       p.id,
+      p.author_id,
       p.title,
       p.description,
       u.nickname AS author_nickname,
@@ -128,7 +131,7 @@ router.get("/:id", optionalAuth, async (req, res) => {
   if (!Number.isInteger(id) || id <= 0) throw new AppError(400, "INVALID_POST_ID", "貼文編號不正確");
 
   const anonId = getOrCreateAnonId(req, res);
-  const result = await pool.query<PostRow & { author_id: number }>(
+  const result = await pool.query<PostRow>(
     `SELECT
       p.id,
       p.author_id,
@@ -176,7 +179,6 @@ router.get("/:id", optionalAuth, async (req, res) => {
   res.json({
     post: {
       ...serializePost(row),
-      authorId: row.author_id,
       isOwner: req.user?.id === row.author_id,
       images: images.map((image) => ({ ...image, url: `/api/media/${image.id}` })),
     },
