@@ -15,6 +15,8 @@ const statusKey = {
   closed: "statusClosed",
 } as const;
 
+type WantResult = { wanted: boolean; wantCount: number };
+
 export default function PostCard({ post }: { post: PostCardType }) {
   const { user } = useAuth();
   const { t } = useLanguage();
@@ -29,16 +31,18 @@ export default function PostCard({ post }: { post: PostCardType }) {
   }, [post.currentUserWants, post.wantCount]);
 
   const want = useMutation({
-    mutationFn: async () => {
-      const method = wanted ? "DELETE" : "POST";
-      await api<unknown>(`/api/posts/${post.id}/want`, { method });
-    },
-    onMutate: () => {
+    mutationFn: async (nextWanted: boolean) => api<WantResult>(`/api/posts/${post.id}/want`, {
+      method: nextWanted ? "POST" : "DELETE",
+    }),
+    onMutate: (nextWanted) => {
       const previous = { wanted, wantCount };
-      const nextWanted = !wanted;
       setWanted(nextWanted);
       setWantCount((count) => Math.max(0, count + (nextWanted ? 1 : -1)));
       return previous;
+    },
+    onSuccess: (result) => {
+      setWanted(result.wanted);
+      setWantCount(result.wantCount);
     },
     onError: (_error, _variables, context) => {
       if (!context) return;
@@ -93,7 +97,7 @@ export default function PostCard({ post }: { post: PostCardType }) {
               ? "border border-sage-100 bg-sage-50 text-sage-700"
               : "bg-sage-600 text-white hover:bg-sage-700"
           }`}
-          onClick={() => want.mutate()}
+          onClick={() => want.mutate(!wanted)}
           disabled={want.isPending || isOwner}
           aria-pressed={wanted}
         >
