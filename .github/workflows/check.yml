@@ -29,16 +29,23 @@ jobs:
         run: npm install --package-lock=false --include=dev --include=optional --no-audit --no-fund
       - name: Verify type dependencies
         run: npm ls typescript @types/node vitest
-      - run: npm run check
+      - name: Run TypeScript check
+        run: |
+          set -o pipefail
+          npm run check 2>&1 | tee check-output.txt
       - name: Prepare test database
         run: npm run db:push
       - name: Run tests
-        run: npm test -- --reporter=verbose 2>&1 | tee test-output.txt
-      - name: Upload test diagnostics
+        run: |
+          set -o pipefail
+          npm test -- --reporter=verbose 2>&1 | tee test-output.txt
+      - name: Upload check diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-output
-          path: test-output.txt
-          if-no-files-found: error
+          name: check-diagnostics
+          path: |
+            check-output.txt
+            test-output.txt
+          if-no-files-found: ignore
       - run: npm run build
