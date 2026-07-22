@@ -14,6 +14,24 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-audit --no-fund
-      - run: npm run check
+      - name: Typecheck
+        id: typecheck
+        shell: bash
+        run: |
+          set +e
+          npm run check > check.log 2>&1
+          code=$?
+          cat check.log
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload typecheck log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: typecheck-log
+          path: check.log
+      - name: Stop after typecheck failure
+        if: steps.typecheck.outputs.exit_code != '0'
+        run: exit 1
       - run: npm test
       - run: npm run build
