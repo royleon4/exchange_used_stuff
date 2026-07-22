@@ -173,6 +173,11 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const appMigrations = pgTable("app_migrations", {
+  id: text("id").primaryKey(),
+  appliedAt: timestamp("applied_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const imageCleanupJobs = pgTable("image_cleanup_jobs", {
   id: serial("id").primaryKey(),
   driveFileId: text("drive_file_id").notNull(),
