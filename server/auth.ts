@@ -1,7 +1,10 @@
 import type { NextFunction, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { eq } from "drizzle-orm";
 import type { PublicUser } from "../shared/types.js";
+import { users } from "../shared/schema.js";
+import { db } from "./db.js";
 
 const COOKIE_NAME = "exchange_session";
 const isProduction = process.env.NODE_ENV === "production";
@@ -53,6 +56,20 @@ export function readSession(req: Request): PublicUser | null {
   }
 }
 
+export async function resolveSessionUser(req: Request): Promise<PublicUser | null> {
+  const session = readSession(req);
+  if (!session) return null;
+
+  const [user] = await db
+    .select({ id: users.id, nickname: users.nickname, role: users.role, isActive: users.isActive })
+    .from(users)
+    .where(eq(users.id, session.id))
+    .limit(1);
+
+  if (!user?.isActive) return null;
+  return { id: user.id, nickname: user.nickname, role: user.role };
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -61,27 +78,43 @@ declare global {
   }
 }
 
-export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
-  req.user = readSession(req) ?? undefined;
-  next();
-}
-
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const user = readSession(req);
-  if (!user) {
-    res.status(401).json({ error: { code: "UNAUTHORIZED", message: "請先登入" } });
-    return;
+export async function optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  try {
+    req.user = (await resolveSessionUser(req)) ?? undefined;
+    next();
+  } catch (error) {
+    next(error);
   }
-  req.user = user;
-  next();
 }
 
-export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
-  requireAuth(req, res, () => {
-    if (req.user?.role !== "admin") {
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "請先登入" } });
+      return;
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const user = await resolveSessionUser(req);
+    if (!user) {
+      res.status(401).json({ error: { code: "UNAUTHORIZED", message: "請先登入" } });
+      return;
+    }
+    if (user.role !== "admin") {
       res.status(403).json({ error: { code: "FORBIDDEN", message: "沒有管理員權限" } });
       return;
     }
+    req.user = user;
     next();
-  });
+  } catch (error) {
+    next(error);
+  }
 }
