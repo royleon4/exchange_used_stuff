@@ -27,8 +27,12 @@ export default function HomePage() {
       )}
 
       <div className="max-w-4xl">
-        <h1 className="font-display text-[clamp(2.3625rem,calc(5.9vmin+5px),4.5625rem)] font-semibold leading-[0.98] text-ink-900">
-          {titleStart} <span className="text-sage-600">{titleAccent}</span>
+        <h1
+          className="font-display text-[clamp(2.3625rem,calc(5.9vmin+5px),4.5625rem)] font-semibold leading-[0.98]"
+          style={{ color: settings.homeTitleColor }}
+        >
+          {titleStart}{" "}
+          <span style={{ color: settings.homeTitleAccentColor }}>{titleAccent}</span>
         </h1>
         <p className="mt-[clamp(0.65rem,1.8dvh,1.35rem)] max-w-2xl text-[clamp(0.9675rem,calc(1.55vmin+3px),1.2625rem)] leading-[1.5] text-ink-700">
           {description}
