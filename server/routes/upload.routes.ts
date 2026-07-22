@@ -26,8 +26,14 @@ router.post("/images", requireAuth, upload.array("images", 9), async (req, res) 
   const files = req.files as Express.Multer.File[] | undefined;
   if (!files?.length) throw new AppError(400, "IMAGE_REQUIRED", "請選擇至少一張圖片");
 
-  // 首頁主圖放在專屬子資料夾,其餘貼文圖片留在根資料夾
-  const folderId = req.query.purpose === "hero" ? await ensureSubfolder("首頁主圖") : undefined;
+  // 首頁主圖放在專屬子資料夾(限管理員),其餘貼文圖片留在根資料夾
+  let folderId: string | undefined;
+  if (req.query.purpose === "hero") {
+    if (req.user!.role !== "admin") {
+      throw new AppError(403, "FORBIDDEN", "只有管理員可以上傳首頁主圖");
+    }
+    folderId = await ensureSubfolder("首頁主圖");
+  }
 
   const uploaded: Array<{ id: number; url: string; width: number; height: number }> = [];
   for (const file of files) {

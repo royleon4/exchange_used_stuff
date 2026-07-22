@@ -21,13 +21,22 @@ async function driveApi(path: string, options: DriveRequestOptions = {}): Promis
   return response;
 }
 
-const folderIdCache = new Map<string, string>();
+const folderIdCache = new Map<string, Promise<string>>();
 
-/** 在上傳根資料夾下尋找或建立指定名稱的子資料夾,回傳其 id */
-export async function ensureSubfolder(name: string): Promise<string> {
+/** 在上傳根資料夾下尋找或建立指定名稱的子資料夾,回傳其 id(有並發保護) */
+export function ensureSubfolder(name: string): Promise<string> {
   const cached = folderIdCache.get(name);
   if (cached) return cached;
 
+  const promise = resolveSubfolder(name).catch((error) => {
+    folderIdCache.delete(name);
+    throw error;
+  });
+  folderIdCache.set(name, promise);
+  return promise;
+}
+
+async function resolveSubfolder(name: string): Promise<string> {
   const query = encodeURIComponent(
     `name = '${name.replace(/'/g, "\\'")}' and '${UPLOAD_FOLDER_ID}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
   );
@@ -52,7 +61,6 @@ export async function ensureSubfolder(name: string): Promise<string> {
     folderId = created.id;
   }
 
-  folderIdCache.set(name, folderId);
   return folderId;
 }
 
