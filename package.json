@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "check": "tsc --noEmit",
     "build": "vite build",
-    "start": "NODE_ENV=production tsx server/index.ts"
+    "start": "npm run db:push && NODE_ENV=production tsx server/index.ts"
   },
   "engines": {
     "node": ">=20"
@@ -24,6 +24,7 @@
     "@tanstack/react-query": "^5.66.9",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
+    "drizzle-kit": "^0.30.4",
     "drizzle-orm": "^0.39.3",
     "express": "^5.0.1",
     "express-rate-limit": "^7.5.0",
@@ -53,7 +54,6 @@
     "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.2",
-    "drizzle-kit": "^0.30.4",
     "postcss": "^8.5.3",
     "supertest": "^7.0.0",
     "tailwindcss": "^3.4.17",
