@@ -1,8 +1,9 @@
-import { Heart, LogOut, Menu, Plus, UserRound, X } from "lucide-react";
+import { Heart, LogOut, Megaphone, Menu, Plus, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
+import { fallbackSiteSettings, useSiteSettings } from "../lib/site-settings";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 const navClass = ({ isActive }: { isActive: boolean }) =>
@@ -13,7 +14,10 @@ const navClass = ({ isActive }: { isActive: boolean }) =>
 export default function Layout() {
   const [open, setOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
+  const settingsQuery = useSiteSettings();
+  const settings = settingsQuery.data?.settings ?? fallbackSiteSettings;
+  const announcement = language === "zh" ? settings.announcement : settings.announcementEn;
   const navigate = useNavigate();
 
   async function handleLogout() {
@@ -96,13 +100,22 @@ export default function Layout() {
             </nav>
           </div>
         )}
+
+        {settings.announcementEnabled && announcement && (
+          <div className="border-t border-sage-100 bg-sage-600 text-white">
+            <div className="page-shell flex items-start justify-center gap-2 py-2.5 text-center text-sm leading-6">
+              <Megaphone className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
+              <p>{announcement}</p>
+            </div>
+          </div>
+        )}
       </header>
 
       <main><Outlet /></main>
 
       <footer className="mt-20 border-t border-white/70 py-10">
         <div className="page-shell text-center text-sm text-ink-700">
-          <p className="font-display text-2xl text-ink-900">Excel & Min</p>
+          <p className="font-display text-2xl text-ink-900">{settings.siteTitle}</p>
           <p className="mt-2">{t("footerTagline")}</p>
           <p className="mt-4 text-xs">{t("footerDisclaimer")}</p>
         </div>
