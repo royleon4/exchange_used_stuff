@@ -30,6 +30,15 @@ function serializeSettings(settings: typeof siteSettings.$inferSelect) {
   };
 }
 
+async function loadSettings() {
+  const [existing] = await db.select().from(siteSettings).limit(1);
+  if (existing) return existing;
+
+  const [created] = await db.insert(siteSettings).values({}).returning();
+  if (!created) throw new AppError(500, "SETTINGS_CREATE_FAILED", "無法建立站台設定");
+  return created;
+}
+
 router.get("/users", async (_req, res) => {
   const result = await pool.query<{
     id: number;
@@ -294,20 +303,18 @@ router.patch("/comments/:id/moderation", async (req, res) => {
 });
 
 router.get("/settings", async (_req, res) => {
-  let [settings] = await db.select().from(siteSettings).limit(1);
-  if (!settings) [settings] = await db.insert(siteSettings).values({}).returning();
+  const settings = await loadSettings();
   res.json({ settings: serializeSettings(settings) });
 });
 
 router.patch("/settings", async (req, res) => {
   const input = adminSiteSettingsSchema.parse(req.body);
-  let [current] = await db.select().from(siteSettings).limit(1);
-  if (!current) [current] = await db.insert(siteSettings).values({}).returning();
+  const current = await loadSettings();
 
   const heroImageChanged =
     input.homeHeroImageId !== undefined && input.homeHeroImageId !== current.homeHeroImageId;
 
-  if (heroImageChanged && input.homeHeroImageId !== null) {
+  if (heroImageChanged && typeof input.homeHeroImageId === "number") {
     const [candidate] = await db
       .select({ id: postImages.id })
       .from(postImages)
@@ -330,6 +337,7 @@ router.patch("/settings", async (req, res) => {
     .set({ ...input, updatedAt: new Date() })
     .where(eq(siteSettings.id, current.id))
     .returning();
+  if (!settings) throw new AppError(500, "SETTINGS_UPDATE_FAILED", "無法更新站台設定");
 
   if (heroImageChanged && previousHeroImageId) {
     const [previousImage] = await db
@@ -341,7 +349,7 @@ router.patch("/settings", async (req, res) => {
     if (previousImage) {
       await db.insert(imageCleanupJobs).values({
         driveFileId: previousImage.driveFileId,
-        reason: input.homeHeroImageId ? "homepage_hero_replaced" : "homepage_hero_removed",
+        reason: typeof input.homeHeroImageId === "number" ? "homepage_hero_replaced" : "homepage_hero_removed",
       });
       await db.delete(postImages).where(eq(postImages.id, previousHeroImageId));
     }
