@@ -2,12 +2,12 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { eq } from "drizzle-orm";
 import { loginSchema, registerSchema } from "../../shared/validation.js";
-import { users } from "../../shared/schema.js";
+import { siteSettings, users } from "../../shared/schema.js";
 import { db } from "../db.js";
 import {
   clearSessionCookie,
   hashPassword,
-  readSession,
+  optionalAuth,
   setSessionCookie,
   verifyPassword,
 } from "../auth.js";
@@ -23,6 +23,10 @@ const authLimiter = rateLimit({
 
 router.post("/register", authLimiter, async (req, res) => {
   const input = registerSchema.parse(req.body);
+  const [settings] = await db.select({ registrationOpen: siteSettings.registrationOpen }).from(siteSettings).limit(1);
+  if (settings && !settings.registrationOpen) {
+    throw new AppError(403, "REGISTRATION_CLOSED", "目前暫停開放新會員註冊");
+  }
 
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.username, input.username)).limit(1);
   if (existing.length > 0) {
@@ -63,8 +67,8 @@ router.post("/logout", (_req, res) => {
   res.status(204).end();
 });
 
-router.get("/me", (req, res) => {
-  res.json({ user: readSession(req) });
+router.get("/me", optionalAuth, (req, res) => {
+  res.json({ user: req.user ?? null });
 });
 
 export default router;
