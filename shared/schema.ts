@@ -96,18 +96,19 @@ export const postImages = pgTable(
 export const postWants = pgTable(
   "post_wants",
   {
-    userId: integer("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+    id: serial("id").primaryKey(),
+    userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+    anonId: text("anon_id"),
     postId: integer("post_id")
       .notNull()
       .references(() => posts.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    primaryKey({ columns: [table.userId, table.postId] }),
     index("post_wants_post_id_idx").on(table.postId),
     index("post_wants_created_at_idx").on(table.createdAt),
+    index("post_wants_user_id_idx").on(table.userId),
+    index("post_wants_anon_id_idx").on(table.anonId),
   ],
 );
 

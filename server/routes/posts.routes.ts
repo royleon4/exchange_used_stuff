@@ -1,9 +1,27 @@
+import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { postImages, posts, postWants } from "../../shared/schema.js";
 import { createPostSchema, updatePostSchema } from "../../shared/validation.js";
 import { optionalAuth, requireAuth } from "../auth.js";
 import { db, pool } from "../db.js";
+
+const ANON_COOKIE = "anon_id";
+const isProduction = process.env.NODE_ENV === "production";
+
+function getOrCreateAnonId(req: import("express").Request, res: import("express").Response): string {
+  const existing = req.cookies?.[ANON_COOKIE] as string | undefined;
+  if (existing) return existing;
+  const id = randomUUID();
+  res.cookie(ANON_COOKIE, id, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: isProduction,
+    maxAge: 365 * 24 * 60 * 60 * 1000,
+    path: "/",
+  });
+  return id;
+}
 import { AppError } from "../middleware/error-handler.js";
 
 const router = Router();
@@ -55,6 +73,7 @@ router.get("/", optionalAuth, async (req, res) => {
         : "p.created_at DESC";
 
   const userId = req.user?.id ?? null;
+  const anonId = getOrCreateAnonId(req, res);
   const result = await pool.query<PostRow>(
     `SELECT
       p.id,
@@ -65,9 +84,9 @@ router.get("/", optionalAuth, async (req, res) => {
       p.comments_enabled,
       COUNT(DISTINCT pi.id)::text AS image_count,
       MIN(pi.id) FILTER (WHERE pi.sort_order = 0) AS cover_image_id,
-      COUNT(DISTINCT pw.user_id)::text AS want_count,
+      COUNT(DISTINCT pw.id)::text AS want_count,
       COUNT(DISTINCT c.id) FILTER (WHERE c.moderation_status = 'visible')::text AS comment_count,
-      COALESCE(BOOL_OR(pw.user_id = $1), false) AS current_user_wants,
+      COALESCE(BOOL_OR(pw.user_id = $1 OR pw.anon_id = $2), false) AS current_user_wants,
       p.created_at,
       p.updated_at
     FROM posts p
@@ -78,8 +97,8 @@ router.get("/", optionalAuth, async (req, res) => {
     WHERE p.moderation_status = 'visible' AND p.deleted_at IS NULL
     GROUP BY p.id, u.nickname
     ORDER BY ${orderBy}
-    LIMIT $2 OFFSET $3`,
-    [userId, pageSize, offset],
+    LIMIT $3 OFFSET $4`,
+    [userId, anonId, pageSize, offset],
   );
 
   const countResult = await pool.query<{ count: string }>(
@@ -100,6 +119,7 @@ router.get("/:id", optionalAuth, async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) throw new AppError(400, "INVALID_POST_ID", "貼文編號不正確");
 
+  const anonId = getOrCreateAnonId(req, res);
   const result = await pool.query<PostRow & { author_id: number }>(
     `SELECT
       p.id,
@@ -111,9 +131,9 @@ router.get("/:id", optionalAuth, async (req, res) => {
       p.comments_enabled,
       COUNT(DISTINCT pi.id)::text AS image_count,
       MIN(pi.id) FILTER (WHERE pi.sort_order = 0) AS cover_image_id,
-      COUNT(DISTINCT pw.user_id)::text AS want_count,
+      COUNT(DISTINCT pw.id)::text AS want_count,
       COUNT(DISTINCT c.id) FILTER (WHERE c.moderation_status = 'visible')::text AS comment_count,
-      COALESCE(BOOL_OR(pw.user_id = $2), false) AS current_user_wants,
+      COALESCE(BOOL_OR(pw.user_id = $2 OR pw.anon_id = $3), false) AS current_user_wants,
       p.created_at,
       p.updated_at
     FROM posts p
@@ -123,7 +143,7 @@ router.get("/:id", optionalAuth, async (req, res) => {
     LEFT JOIN comments c ON c.post_id = p.id
     WHERE p.id = $1 AND p.moderation_status = 'visible' AND p.deleted_at IS NULL
     GROUP BY p.id, u.nickname`,
-    [id, req.user?.id ?? null],
+    [id, req.user?.id ?? null, anonId],
   );
   const row = result.rows[0];
   if (!row) throw new AppError(404, "POST_NOT_FOUND", "找不到這篇貼文");
@@ -224,20 +244,34 @@ router.delete("/:id", requireAuth, async (req, res) => {
   res.status(204).end();
 });
 
-router.post("/:id/want", requireAuth, async (req, res) => {
+router.post("/:id/want", optionalAuth, async (req, res) => {
   const postId = Number(req.params.id);
   const [post] = await db.select({ id: posts.id }).from(posts).where(eq(posts.id, postId)).limit(1);
   if (!post) throw new AppError(404, "POST_NOT_FOUND", "找不到這篇貼文");
 
-  await db.insert(postWants).values({ userId: req.user!.id, postId }).onConflictDoNothing();
+  const anonId = getOrCreateAnonId(req, res);
+  if (req.user) {
+    await db.insert(postWants).values({ userId: req.user.id, postId }).onConflictDoNothing();
+  } else {
+    await pool.query(
+      "INSERT INTO post_wants (anon_id, post_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+      [anonId, postId],
+    );
+  }
   res.status(201).json({ wanted: true });
 });
 
-router.delete("/:id/want", requireAuth, async (req, res) => {
+router.delete("/:id/want", optionalAuth, async (req, res) => {
   const postId = Number(req.params.id);
-  await db
-    .delete(postWants)
-    .where(and(eq(postWants.userId, req.user!.id), eq(postWants.postId, postId)));
+  const anonId = getOrCreateAnonId(req, res);
+  if (req.user) {
+    await db.delete(postWants).where(and(eq(postWants.userId, req.user.id), eq(postWants.postId, postId)));
+  } else {
+    await pool.query(
+      "DELETE FROM post_wants WHERE anon_id = $1 AND post_id = $2",
+      [anonId, postId],
+    );
+  }
   res.status(204).end();
 });
 

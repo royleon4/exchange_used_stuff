@@ -44,10 +44,6 @@ export default function PostDetailPage() {
   });
   const want = useMutation({
     mutationFn: async () => {
-      if (!user) {
-        navigate(`/login?next=/posts/${id}`);
-        return;
-      }
       const method = postQuery.data?.post.currentUserWants ? "DELETE" : "POST";
       await api(`/api/posts/${id}/want`, { method });
     },
