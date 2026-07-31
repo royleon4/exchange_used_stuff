@@ -12,13 +12,20 @@ export type ApiErrorPayload = {
   };
 };
 
+export type ItemStatus = "considering" | "bringing" | "not_bringing" | "closed";
+
+export type WantResult = {
+  wanted: boolean;
+  wantCount: number;
+};
+
 export type PostCard = {
   id: number;
   authorId: number;
   title: string;
   description: string;
   authorNickname: string;
-  itemStatus: "considering" | "bringing" | "not_bringing" | "closed";
+  itemStatus: ItemStatus;
   commentsEnabled: boolean;
   imageCount: number;
   imageIds: number[];
@@ -26,6 +33,28 @@ export type PostCard = {
   wantCount: number;
   commentCount: number;
   currentUserWants: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PostImageView = {
+  id: number;
+  url: string;
+  width: number;
+  height: number;
+  sortOrder: number;
+};
+
+export type PostDetail = PostCard & {
+  isOwner: boolean;
+  images: PostImageView[];
+};
+
+export type PostComment = {
+  id: number;
+  body: string;
+  authorId: number;
+  authorNickname: string;
   createdAt: string;
   updatedAt: string;
 };

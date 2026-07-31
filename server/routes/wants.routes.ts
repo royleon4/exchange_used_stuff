@@ -1,30 +1,13 @@
-import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import { and, eq, isNull } from "drizzle-orm";
 import { posts } from "../../shared/schema.js";
+import { getOrCreateAnonymousId } from "../anonymous-id.js";
 import { optionalAuth } from "../auth.js";
 import { db } from "../db.js";
 import { AppError } from "../middleware/error-handler.js";
 import { addPostWant, removePostWant } from "../services/wants.service.js";
 
-const ANON_COOKIE = "anon_id";
-const isProduction = process.env.NODE_ENV === "production";
 const router = Router();
-
-function getOrCreateAnonId(req: import("express").Request, res: import("express").Response): string {
-  const existing = req.cookies?.[ANON_COOKIE] as string | undefined;
-  if (existing) return existing;
-
-  const id = randomUUID();
-  res.cookie(ANON_COOKIE, id, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isProduction,
-    maxAge: 365 * 24 * 60 * 60 * 1000,
-    path: "/",
-  });
-  return id;
-}
 
 async function requireVisiblePost(postId: number): Promise<{ authorId: number }> {
   if (!Number.isInteger(postId) || postId <= 0) {
@@ -58,7 +41,7 @@ router.post("/:id/want", optionalAuth, async (req, res) => {
   const result = await addPostWant({
     postId,
     userId: req.user?.id,
-    anonId: getOrCreateAnonId(req, res),
+    anonId: getOrCreateAnonymousId(req, res),
   });
 
   res.status(201).json(result);
@@ -71,7 +54,7 @@ router.delete("/:id/want", optionalAuth, async (req, res) => {
   const result = await removePostWant({
     postId,
     userId: req.user?.id,
-    anonId: getOrCreateAnonId(req, res),
+    anonId: getOrCreateAnonymousId(req, res),
   });
 
   res.json(result);
