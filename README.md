@@ -151,14 +151,14 @@ Drizzle schema push
 ### 常用指令
 
 ```bash
-npm run dev       # 同時啟動 API 與前端
-npm run check     # TypeScript 檢查
-npm test          # 執行全部測試
-npm run build     # 建立正式版前端
-npm run db:migrate# 執行應用程式資料修復 migration
-npm run db:push   # migration 後同步 Drizzle schema
-npm run seed      # 建立站台設定與缺少的初始管理員
-npm run start     # 啟動正式環境，不執行資料庫變更
+npm run dev        # 同時啟動 API 與前端
+npm run check      # TypeScript 檢查
+npm test           # 執行全部測試
+npm run build      # 建立正式版前端
+npm run db:migrate # 執行應用程式資料修復 migration
+npm run db:push    # migration 後同步 Drizzle schema
+npm run seed       # 建立站台設定與缺少的初始管理員
+npm run start      # 啟動正式環境，不執行資料庫變更
 ```
 
 ## GitHub Actions
