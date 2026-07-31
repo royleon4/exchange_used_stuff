@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Heart, MessageCircle, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Heart, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import ImageCarousel from "../components/ImageCarousel";
@@ -98,6 +98,13 @@ export default function PostDetailPage() {
 
   return (
     <section className="page-shell py-10 sm:py-16">
+      <div className="mb-5 flex justify-end sm:mb-6">
+        <Link to="/items" className="btn-secondary">
+          <ArrowLeft size={17} aria-hidden="true" />
+          {language === "zh" ? "返回物品牆" : "Back to Items"}
+        </Link>
+      </div>
+
       <div className="grid gap-8 lg:grid-cols-[1.25fr_.75fr]">
         <div>
           <ImageCarousel
