@@ -2,58 +2,31 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Heart, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import type { PostCard as PostCardType } from "../../../shared/types";
+import type { PostCard as PostCardType, WantResult } from "../../../shared/types";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
+import {
+  formatTaiwanDateTime,
+  formatTaiwanPostTimestamp,
+  localeForLanguage,
+  POST_STATUS_TRANSLATION_KEYS,
+} from "../lib/post-presentation";
 import ImageCarousel from "./ImageCarousel";
-
-const statusKey = {
-  considering: "statusConsidering",
-  bringing: "statusBringing",
-  not_bringing: "statusNotBringing",
-  closed: "statusClosed",
-} as const;
-
-type WantResult = { wanted: boolean; wantCount: number };
 
 type Props = {
   post: PostCardType;
   showCreatedAt?: boolean;
 };
 
-function formatTaiwanPostTime(value: string): string {
-  const parts = new Intl.DateTimeFormat("zh-TW", {
-    timeZone: "Asia/Taipei",
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(new Date(value));
-  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
-  return `${part("month")}/${part("day")} ${part("hour")}:${part("minute")}`;
-}
-
-function formatTaiwanPostTimeFull(value: string): string {
-  return new Intl.DateTimeFormat("zh-TW", {
-    timeZone: "Asia/Taipei",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(new Date(value));
-}
-
 export default function PostCard({ post, showCreatedAt = false }: Props) {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { language, t } = useLanguage();
   const client = useQueryClient();
   const [wanted, setWanted] = useState(post.currentUserWants);
   const [wantCount, setWantCount] = useState(post.wantCount);
   const isOwner = user?.id === post.authorId;
+  const locale = localeForLanguage(language);
 
   useEffect(() => {
     setWanted(post.currentUserWants);
@@ -109,15 +82,15 @@ export default function PostCard({ post, showCreatedAt = false }: Props) {
           overlay={(
             <>
               <span className="absolute left-4 top-4 z-10 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-sage-700 backdrop-blur">
-                {t(statusKey[post.itemStatus])}
+                {t(POST_STATUS_TRANSLATION_KEYS[post.itemStatus])}
               </span>
               {showCreatedAt && (
                 <time
                   dateTime={post.createdAt}
-                  title={formatTaiwanPostTimeFull(post.createdAt)}
+                  title={formatTaiwanDateTime(post.createdAt, locale)}
                   className="absolute right-4 top-4 z-10 rounded-full bg-ink-900/75 px-3 py-1 text-xs font-semibold tabular-nums text-white backdrop-blur"
                 >
-                  {formatTaiwanPostTime(post.createdAt)}
+                  {formatTaiwanPostTimestamp(post.createdAt)}
                 </time>
               )}
             </>
