@@ -17,7 +17,37 @@ const statusKey = {
 
 type WantResult = { wanted: boolean; wantCount: number };
 
-export default function PostCard({ post }: { post: PostCardType }) {
+type Props = {
+  post: PostCardType;
+  showCreatedAt?: boolean;
+};
+
+function formatTaiwanPostTime(value: string): string {
+  const parts = new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value ?? "";
+  return `${part("month")}/${part("day")} ${part("hour")}:${part("minute")}`;
+}
+
+function formatTaiwanPostTimeFull(value: string): string {
+  return new Intl.DateTimeFormat("zh-TW", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(value));
+}
+
+export default function PostCard({ post, showCreatedAt = false }: Props) {
   const { user } = useAuth();
   const { t } = useLanguage();
   const client = useQueryClient();
@@ -77,9 +107,20 @@ export default function PostCard({ post }: { post: PostCardType }) {
           images={images}
           imageClassName="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           overlay={(
-            <span className="absolute left-4 top-4 z-10 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-sage-700 backdrop-blur">
-              {t(statusKey[post.itemStatus])}
-            </span>
+            <>
+              <span className="absolute left-4 top-4 z-10 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-sage-700 backdrop-blur">
+                {t(statusKey[post.itemStatus])}
+              </span>
+              {showCreatedAt && (
+                <time
+                  dateTime={post.createdAt}
+                  title={formatTaiwanPostTimeFull(post.createdAt)}
+                  className="absolute right-4 top-4 z-10 rounded-full bg-ink-900/75 px-3 py-1 text-xs font-semibold tabular-nums text-white backdrop-blur"
+                >
+                  {formatTaiwanPostTime(post.createdAt)}
+                </time>
+              )}
+            </>
           )}
         />
         <div className="px-5 pb-4 pt-5">
