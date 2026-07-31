@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import { eq } from "drizzle-orm";
 import { loginSchema, registerSchema } from "../../shared/validation.js";
 import { siteSettings, users } from "../../shared/schema.js";
+import { clearAnonymousIdCookie, getAnonymousId } from "../anonymous-id.js";
 import { db } from "../db.js";
 import {
   clearSessionCookie,
@@ -15,7 +16,6 @@ import { AppError } from "../middleware/error-handler.js";
 import { claimAnonymousWants } from "../services/wants.service.js";
 
 const router = Router();
-const isProduction = process.env.NODE_ENV === "production";
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
@@ -23,27 +23,14 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-function getAnonId(req: import("express").Request): string | undefined {
-  return req.cookies?.anon_id as string | undefined;
-}
-
-function clearAnonCookie(res: import("express").Response): void {
-  res.clearCookie("anon_id", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: isProduction,
-    path: "/",
-  });
-}
-
 async function claimBrowserWants(
   req: import("express").Request,
   res: import("express").Response,
   userId: number,
 ): Promise<void> {
-  const anonId = getAnonId(req);
+  const anonId = getAnonymousId(req);
   await claimAnonymousWants(userId, anonId);
-  if (anonId) clearAnonCookie(res);
+  if (anonId) clearAnonymousIdCookie(res);
 }
 
 router.post("/register", authLimiter, async (req, res) => {
