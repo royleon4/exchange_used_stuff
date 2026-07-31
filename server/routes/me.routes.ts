@@ -6,6 +6,7 @@ import { changePasswordSchema, profileUpdateSchema } from "../../shared/validati
 import { hashPassword, requireAuth, setSessionCookie, verifyPassword } from "../auth.js";
 import { db, pool } from "../db.js";
 import { AppError } from "../middleware/error-handler.js";
+import { serializePostCard, type PostCardRow } from "../post-card.js";
 
 const router = Router();
 router.use(requireAuth);
@@ -17,46 +18,8 @@ const passwordLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-type MePostRow = {
-  id: number;
-  author_id: number;
-  title: string;
-  description: string;
-  author_nickname: string;
-  item_status: "considering" | "bringing" | "not_bringing" | "closed";
-  comments_enabled: boolean;
-  image_count: string;
-  image_ids: number[];
-  cover_image_id: number | null;
-  want_count: string;
-  comment_count: string;
-  current_user_wants: boolean;
-  created_at: Date;
-  updated_at: Date;
-};
-
-function serializePost(row: MePostRow) {
-  return {
-    id: row.id,
-    authorId: row.author_id,
-    title: row.title,
-    description: row.description,
-    authorNickname: row.author_nickname,
-    itemStatus: row.item_status,
-    commentsEnabled: row.comments_enabled,
-    imageCount: Number(row.image_count),
-    imageIds: row.image_ids ?? [],
-    coverImageId: row.cover_image_id,
-    wantCount: Number(row.want_count),
-    commentCount: Number(row.comment_count),
-    currentUserWants: row.current_user_wants,
-    createdAt: row.created_at.toISOString(),
-    updatedAt: row.updated_at.toISOString(),
-  };
-}
-
 router.get("/posts", async (req, res) => {
-  const result = await pool.query<MePostRow>(
+  const result = await pool.query<PostCardRow>(
     `SELECT
       p.id,
       p.author_id,
@@ -88,11 +51,11 @@ router.get("/posts", async (req, res) => {
      ORDER BY p.created_at DESC`,
     [req.user!.id],
   );
-  res.json({ posts: result.rows.map(serializePost) });
+  res.json({ posts: result.rows.map(serializePostCard) });
 });
 
 router.get("/wants", async (req, res) => {
-  const result = await pool.query<MePostRow>(
+  const result = await pool.query<PostCardRow>(
     `SELECT
       p.id,
       p.author_id,
@@ -132,7 +95,7 @@ router.get("/wants", async (req, res) => {
      ) DESC`,
     [req.user!.id],
   );
-  res.json({ posts: result.rows.map(serializePost) });
+  res.json({ posts: result.rows.map(serializePostCard) });
 });
 
 router.patch("/profile", async (req, res) => {
