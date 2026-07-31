@@ -98,7 +98,7 @@ export default function PostDetailPage() {
 
   return (
     <section className="page-shell py-10 sm:py-16">
-      <div className="mb-5 flex justify-end sm:mb-6">
+      <div className="mb-5 flex justify-start sm:mb-6">
         <Link to="/items" className="btn-secondary">
           <ArrowLeft size={17} aria-hidden="true" />
           {language === "zh" ? "返回物品牆" : "Back to Items"}
