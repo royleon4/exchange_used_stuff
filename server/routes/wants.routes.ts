@@ -26,13 +26,13 @@ function getOrCreateAnonId(req: import("express").Request, res: import("express"
   return id;
 }
 
-async function requireVisiblePost(postId: number): Promise<void> {
+async function requireVisiblePost(postId: number): Promise<{ authorId: number }> {
   if (!Number.isInteger(postId) || postId <= 0) {
     throw new AppError(400, "INVALID_POST_ID", "貼文編號不正確");
   }
 
   const [post] = await db
-    .select({ id: posts.id })
+    .select({ authorId: posts.authorId })
     .from(posts)
     .where(
       and(
@@ -44,11 +44,16 @@ async function requireVisiblePost(postId: number): Promise<void> {
     .limit(1);
 
   if (!post) throw new AppError(404, "POST_NOT_FOUND", "找不到這篇貼文");
+  return post;
 }
 
 router.post("/:id/want", optionalAuth, async (req, res) => {
   const postId = Number(req.params.id);
-  await requireVisiblePost(postId);
+  const post = await requireVisiblePost(postId);
+
+  if (req.user?.id === post.authorId) {
+    throw new AppError(403, "OWN_POST_WANT_NOT_ALLOWED", "不能對自己發布的物品按「我想要」");
+  }
 
   const result = await addPostWant({
     postId,

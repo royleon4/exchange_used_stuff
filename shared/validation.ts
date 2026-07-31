@@ -51,6 +51,10 @@ export const userRoleSchema = z.enum(["user", "admin"]);
 
 const postTitleSchema = z.string().trim().min(3, "標題至少 3 個字").max(40, "標題最多 40 個字");
 const postDescriptionSchema = z.string().trim();
+const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#[0-9A-Fa-f]{6}$/, "請選擇有效的顏色");
 
 export const createPostSchema = z.object({
   title: postTitleSchema,
@@ -93,6 +97,9 @@ export const adminSiteSettingsSchema = z
     homeTitleStartEn: z.string().trim().min(1).max(140).optional(),
     homeTitleAccentEn: z.string().trim().min(1).max(140).optional(),
     homeDescriptionEn: z.string().trim().min(1).max(700).optional(),
+    homeTitleColor: hexColorSchema.optional(),
+    homeTitleAccentColor: hexColorSchema.optional(),
+    homeHeroImageId: z.number().int().positive().nullable().optional(),
     announcement: z.string().trim().max(500).optional(),
     announcementEn: z.string().trim().max(700).optional(),
     announcementEnabled: z.boolean().optional(),

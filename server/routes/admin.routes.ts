@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { comments, imageCleanupJobs, postImages, posts, siteSettings, users } from "../../shared/schema.js";
 import {
   adminPostUpdateSchema,
@@ -18,6 +18,25 @@ function positiveId(value: string): number {
   const id = Number(value);
   if (!Number.isInteger(id) || id <= 0) throw new AppError(400, "INVALID_ID", "編號格式不正確");
   return id;
+}
+
+function serializeSettings(settings: typeof siteSettings.$inferSelect) {
+  return {
+    ...settings,
+    homeHeroImageUrl: settings.homeHeroImageId
+      ? `/api/media/${settings.homeHeroImageId}?v=${settings.updatedAt.getTime()}`
+      : null,
+    updatedAt: settings.updatedAt.toISOString(),
+  };
+}
+
+async function loadSettings() {
+  const [existing] = await db.select().from(siteSettings).limit(1);
+  if (existing) return existing;
+
+  const [created] = await db.insert(siteSettings).values({}).returning();
+  if (!created) throw new AppError(500, "SETTINGS_CREATE_FAILED", "無法建立站台設定");
+  return created;
 }
 
 router.get("/users", async (_req, res) => {
@@ -284,22 +303,59 @@ router.patch("/comments/:id/moderation", async (req, res) => {
 });
 
 router.get("/settings", async (_req, res) => {
-  let [settings] = await db.select().from(siteSettings).limit(1);
-  if (!settings) [settings] = await db.insert(siteSettings).values({}).returning();
-  res.json({ settings });
+  const settings = await loadSettings();
+  res.json({ settings: serializeSettings(settings) });
 });
 
 router.patch("/settings", async (req, res) => {
   const input = adminSiteSettingsSchema.parse(req.body);
-  let [current] = await db.select().from(siteSettings).limit(1);
-  if (!current) [current] = await db.insert(siteSettings).values({}).returning();
+  const current = await loadSettings();
 
+  const heroImageChanged =
+    input.homeHeroImageId !== undefined && input.homeHeroImageId !== current.homeHeroImageId;
+
+  if (heroImageChanged && typeof input.homeHeroImageId === "number") {
+    const [candidate] = await db
+      .select({ id: postImages.id })
+      .from(postImages)
+      .where(
+        and(
+          eq(postImages.id, input.homeHeroImageId),
+          eq(postImages.ownerId, req.user!.id),
+          isNull(postImages.postId),
+        ),
+      )
+      .limit(1);
+    if (!candidate) {
+      throw new AppError(400, "INVALID_HOME_IMAGE", "找不到可使用的首頁圖片");
+    }
+  }
+
+  const previousHeroImageId = current.homeHeroImageId;
   const [settings] = await db
     .update(siteSettings)
     .set({ ...input, updatedAt: new Date() })
     .where(eq(siteSettings.id, current.id))
     .returning();
-  res.json({ settings });
+  if (!settings) throw new AppError(500, "SETTINGS_UPDATE_FAILED", "無法更新站台設定");
+
+  if (heroImageChanged && previousHeroImageId) {
+    const [previousImage] = await db
+      .select({ driveFileId: postImages.driveFileId })
+      .from(postImages)
+      .where(eq(postImages.id, previousHeroImageId))
+      .limit(1);
+
+    if (previousImage) {
+      await db.insert(imageCleanupJobs).values({
+        driveFileId: previousImage.driveFileId,
+        reason: typeof input.homeHeroImageId === "number" ? "homepage_hero_replaced" : "homepage_hero_removed",
+      });
+      await db.delete(postImages).where(eq(postImages.id, previousHeroImageId));
+    }
+  }
+
+  res.json({ settings: serializeSettings(settings) });
 });
 
 export default router;

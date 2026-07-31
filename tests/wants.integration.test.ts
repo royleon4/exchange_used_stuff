@@ -8,6 +8,7 @@ type WantService = typeof import("../server/services/wants.service.js");
 
 let pool: PoolType;
 let wants: WantService;
+let ownerUserId = 0;
 let userId = 0;
 let postId = 0;
 
@@ -20,18 +21,21 @@ describeDatabase("post want database integrity", () => {
   beforeEach(async () => {
     await pool.query("TRUNCATE TABLE post_wants, comments, post_images, posts, users RESTART IDENTITY CASCADE");
 
-    const user = await pool.query<{ id: number }>(
+    const users = await pool.query<{ id: number; username: string }>(
       `INSERT INTO users (username, password_hash, nickname)
-       VALUES ('want-test-user', 'test-hash', 'Want Tester')
-       RETURNING id`,
+       VALUES
+         ('want-test-owner', 'test-hash', 'Post Owner'),
+         ('want-test-user', 'test-hash', 'Want Tester')
+       RETURNING id, username`,
     );
-    userId = user.rows[0]!.id;
+    ownerUserId = users.rows.find((row) => row.username === "want-test-owner")!.id;
+    userId = users.rows.find((row) => row.username === "want-test-user")!.id;
 
     const post = await pool.query<{ id: number }>(
       `INSERT INTO posts (author_id, title, description)
        VALUES ($1, '測試物品標題', '')
        RETURNING id`,
-      [userId],
+      [ownerUserId],
     );
     postId = post.rows[0]!.id;
   });
@@ -87,22 +91,24 @@ describeDatabase("post want database integrity", () => {
     expect(result).toEqual({ wanted: false, wantCount: 0 });
   });
 
-  it("claims anonymous wants without duplicating existing member wants", async () => {
-    const secondPost = await pool.query<{ id: number }>(
+  it("claims anonymous wants without duplicating existing wants or claiming the user's own post", async () => {
+    const ownPost = await pool.query<{ id: number }>(
       `INSERT INTO posts (author_id, title, description)
-       VALUES ($1, '第二個測試物品', '')
+       VALUES ($1, '自己的測試物品', '')
        RETURNING id`,
       [userId],
     );
+    const ownPostId = ownPost.rows[0]!.id;
 
     await pool.query(
-      "INSERT INTO post_wants (user_id, post_id) VALUES ($1, $2)",
-      [userId, postId],
+      `INSERT INTO post_wants (user_id, post_id)
+       VALUES ($1, $2), ($1, $3)`,
+      [userId, postId, ownPostId],
     );
     await pool.query(
       `INSERT INTO post_wants (anon_id, post_id)
        VALUES ($1, $2), ($1, $3)`,
-      ["claim-browser", postId, secondPost.rows[0]!.id],
+      ["claim-browser", postId, ownPostId],
     );
 
     await wants.claimAnonymousWants(userId, "claim-browser");
@@ -115,8 +121,36 @@ describeDatabase("post want database integrity", () => {
       "SELECT COUNT(*)::text AS count FROM post_wants WHERE anon_id = $1",
       ["claim-browser"],
     );
+    const ownPostRows = await pool.query<{ count: string }>(
+      "SELECT COUNT(*)::text AS count FROM post_wants WHERE post_id = $1",
+      [ownPostId],
+    );
 
-    expect(Number(memberRows.rows[0]!.count)).toBe(2);
+    expect(Number(memberRows.rows[0]!.count)).toBe(1);
     expect(Number(anonymousRows.rows[0]!.count)).toBe(0);
+    expect(Number(ownPostRows.rows[0]!.count)).toBe(0);
+  });
+
+  it("removes an old member want on the user's own post without an anonymous cookie", async () => {
+    const ownPost = await pool.query<{ id: number }>(
+      `INSERT INTO posts (author_id, title, description)
+       VALUES ($1, '舊資料中的自己的物品', '')
+       RETURNING id`,
+      [userId],
+    );
+    const ownPostId = ownPost.rows[0]!.id;
+
+    await pool.query(
+      "INSERT INTO post_wants (user_id, post_id) VALUES ($1, $2)",
+      [userId, ownPostId],
+    );
+
+    await wants.claimAnonymousWants(userId);
+
+    const rows = await pool.query<{ count: string }>(
+      "SELECT COUNT(*)::text AS count FROM post_wants WHERE post_id = $1",
+      [ownPostId],
+    );
+    expect(Number(rows.rows[0]!.count)).toBe(0);
   });
 });

@@ -12,7 +12,7 @@ jobs:
       NODE_ENV: development
       NPM_CONFIG_PRODUCTION: "false"
       NPM_CONFIG_OMIT: ""
-      DATABASE_URL: postgresql:///exchange_test?host=/var/run/postgresql&user=runner
+      DATABASE_URL: postgresql://runner:runner@127.0.0.1:5432/exchange_test
       JWT_SECRET: ci-only-secret
     steps:
       - uses: actions/checkout@v4
@@ -23,22 +23,32 @@ jobs:
       - name: Start PostgreSQL
         run: |
           sudo systemctl start postgresql.service
-          sudo -u postgres createuser --superuser runner
+          sudo -u postgres psql --set=ON_ERROR_STOP=1 --command="CREATE ROLE runner LOGIN SUPERUSER PASSWORD 'runner';"
           sudo -u postgres createdb --owner=runner exchange_test
       - name: Install dependencies
         run: npm install --package-lock=false --include=dev --include=optional --no-audit --no-fund
       - name: Verify type dependencies
         run: npm ls typescript @types/node vitest
-      - run: npm run check
+      - name: Run TypeScript check
+        run: |
+          set -o pipefail
+          npm run check 2>&1 | tee check-output.txt
       - name: Prepare test database
-        run: npm run db:push
+        run: |
+          set -o pipefail
+          npm run db:push 2>&1 | tee database-output.txt
       - name: Run tests
-        run: npm test -- --reporter=verbose 2>&1 | tee test-output.txt
-      - name: Upload test diagnostics
+        run: |
+          set -o pipefail
+          npm test -- --reporter=verbose 2>&1 | tee test-output.txt
+      - name: Upload check diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-output
-          path: test-output.txt
-          if-no-files-found: error
+          name: check-diagnostics
+          path: |
+            check-output.txt
+            database-output.txt
+            test-output.txt
+          if-no-files-found: ignore
       - run: npm run build

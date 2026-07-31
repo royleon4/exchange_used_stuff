@@ -1,4 +1,4 @@
-import { ArrowRight, Heart, PackageOpen, Sparkles } from "lucide-react";
+import { ArrowRight, Heart, PackageOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
@@ -14,52 +14,66 @@ export default function HomePage() {
   const description = language === "zh" ? settings.homeDescriptionZh : settings.homeDescriptionEn;
 
   return (
-    <>
-      <section className="page-shell py-12 sm:py-20">
-        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/80 bg-white/75 px-6 py-12 shadow-soft backdrop-blur sm:px-12 sm:py-20">
-          <div className="absolute -right-16 -top-16 size-64 rounded-full bg-sage-100/70 blur-2xl" />
-          <div className="absolute -bottom-24 left-1/3 size-72 rounded-full bg-cream-200/80 blur-3xl" />
-          <div className="relative max-w-3xl">
-            <p className="eyebrow">{t("heroEyebrow")}</p>
-            <h1 className="mt-5 font-display text-5xl font-semibold leading-[0.98] text-ink-900 sm:text-7xl">
-              {titleStart} <span className="text-sage-600">{titleAccent}</span>
-            </h1>
-            <p className="mt-7 max-w-2xl text-base leading-8 text-ink-700 sm:text-lg">{description}</p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to={user ? "/posts/new" : "/register?next=/posts/new"} className="btn-primary">
-                {user ? t("heroPublish") : t("heroJoin")} <ArrowRight size={18} />
-              </Link>
-              <Link to="/items" className="btn-secondary">
-                {t("heroBrowse")}
-              </Link>
-            </div>
-          </div>
+    <section className="page-shell flex w-full flex-1 flex-col justify-center py-6 md:h-full md:min-h-0 md:-translate-y-[clamp(0.35rem,1.5dvh,1rem)] md:overflow-hidden md:py-[clamp(0.5rem,1.5dvh,1.25rem)]">
+      {settings.homeHeroImageUrl && (
+        <div className="mb-[clamp(0.45rem,1.4dvh,1rem)] flex min-h-0 shrink items-center justify-center py-[clamp(0.35rem,1dvh,0.75rem)]">
+          <img
+            src={settings.homeHeroImageUrl}
+            alt=""
+            className="max-h-[clamp(3rem,11dvh,7rem)] w-full max-w-4xl object-contain"
+            draggable={false}
+          />
         </div>
-      </section>
+      )}
 
-      <section className="page-shell grid gap-4 pb-16 sm:grid-cols-3 sm:pb-24">
-        <div className="card p-6">
-          <span className="grid size-11 place-items-center rounded-2xl bg-sage-50 text-sage-600">
-            <PackageOpen size={20} />
+      <div className="max-w-4xl">
+        <h1
+          className="font-display text-[clamp(1.6rem,calc(5.9vmin+5px),4.5625rem)] font-semibold leading-[1.05] md:leading-[0.98]"
+          style={{ color: settings.homeTitleColor }}
+        >
+          {titleStart}{" "}
+          <span style={{ color: settings.homeTitleAccentColor }}>{titleAccent}</span>
+        </h1>
+        <p className="mt-[clamp(0.65rem,1.8dvh,1.35rem)] max-w-2xl text-[clamp(0.8125rem,calc(1.55vmin+4px),1.2625rem)] leading-[1.5] text-ink-700">
+          {description}
+        </p>
+      </div>
+
+      <div className="mt-[clamp(0.8rem,2.5dvh,2.1rem)] grid gap-[clamp(0.5rem,1.3dvh,0.9rem)] md:grid-cols-2">
+        <Link
+          to={user ? "/posts/new" : "/register?next=/posts/new"}
+          className="group flex min-h-[clamp(4rem,12dvh,6.75rem)] items-center gap-[clamp(0.55rem,1.8vw,0.95rem)] rounded-[clamp(1.1rem,2.8vw,1.9rem)] bg-sage-600 px-[clamp(0.75rem,2.3vw,1.4rem)] py-[clamp(0.6rem,1.8dvh,1.15rem)] text-left text-white shadow-lg shadow-sage-600/20 transition duration-200 hover:-translate-y-1 hover:bg-sage-700 hover:shadow-xl focus-visible:-translate-y-1"
+        >
+          <span className="grid size-[clamp(2.15rem,5.5vmin,3.35rem)] shrink-0 place-items-center rounded-2xl bg-white/15">
+            <PackageOpen className="size-[clamp(1.05rem,2.8vmin,1.55rem)]" aria-hidden="true" />
           </span>
-          <h2 className="mt-4 font-semibold text-ink-900">{t("shareTitle")}</h2>
-          <p className="mt-2 text-sm leading-6 text-ink-700">{t("shareDescription")}</p>
-        </div>
-        <div className="card p-6">
-          <span className="grid size-11 place-items-center rounded-2xl bg-sage-50 text-sage-600">
-            <Heart size={20} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[clamp(0.95rem,calc(2.05vmin+3px),1.3875rem)] font-bold">
+              {user ? t("heroPublish") : t("heroJoin")}
+            </span>
+            <span className="mt-1 block text-[clamp(0.75rem,calc(1.4vmin+4px),1.0375rem)] leading-[1.42] text-white/80">
+              {t("newPostDescription")}
+            </span>
           </span>
-          <h2 className="mt-4 font-semibold text-ink-900">{t("interestTitle")}</h2>
-          <p className="mt-2 text-sm leading-6 text-ink-700">{t("interestDescription")}</p>
-        </div>
-        <div className="card p-6">
-          <span className="grid size-11 place-items-center rounded-2xl bg-sage-50 text-sage-600">
-            <Sparkles size={20} />
+          <ArrowRight className="size-[clamp(0.95rem,2.6vmin,1.35rem)] shrink-0 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+        </Link>
+
+        <Link
+          to="/items"
+          className="group flex min-h-[clamp(4rem,12dvh,6.75rem)] items-center gap-[clamp(0.55rem,1.8vw,0.95rem)] rounded-[clamp(1.1rem,2.8vw,1.9rem)] border-2 border-sage-100 bg-white/90 px-[clamp(0.75rem,2.3vw,1.4rem)] py-[clamp(0.6rem,1.8dvh,1.15rem)] text-left text-sage-700 shadow-md transition duration-200 hover:-translate-y-1 hover:border-sage-300 hover:bg-sage-50 hover:shadow-lg focus-visible:-translate-y-1"
+        >
+          <span className="grid size-[clamp(2.15rem,5.5vmin,3.35rem)] shrink-0 place-items-center rounded-2xl bg-sage-100 text-sage-700">
+            <Heart className="size-[clamp(1.05rem,2.8vmin,1.55rem)]" aria-hidden="true" />
           </span>
-          <h2 className="mt-4 font-semibold text-ink-900">{t("meetTitle")}</h2>
-          <p className="mt-2 text-sm leading-6 text-ink-700">{t("meetDescription")}</p>
-        </div>
-      </section>
-    </>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[clamp(0.95rem,calc(2.05vmin+3px),1.3875rem)] font-bold text-ink-900">{t("heroBrowse")}</span>
+            <span className="mt-1 block text-[clamp(0.75rem,calc(1.4vmin+4px),1.0375rem)] leading-[1.42] text-ink-700">
+              {t("itemsDescription")}
+            </span>
+          </span>
+          <ArrowRight className="size-[clamp(0.95rem,2.6vmin,1.35rem)] shrink-0 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+        </Link>
+      </div>
+    </section>
   );
 }

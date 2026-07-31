@@ -1,6 +1,6 @@
 import { Heart, LogOut, Megaphone, Menu, Plus, UserRound, X } from "lucide-react";
-import { useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
 import { fallbackSiteSettings, useSiteSettings } from "../lib/site-settings";
@@ -19,6 +19,39 @@ export default function Layout() {
   const settings = settingsQuery.data?.settings ?? fallbackSiteSettings;
   const announcement = language === "zh" ? settings.announcement : settings.announcementEn;
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHomePage = location.pathname === "/";
+
+  useEffect(() => {
+    if (!isHomePage) return;
+
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyOverscroll = document.body.style.overscrollBehavior;
+
+    // 只在桌機(md 以上)鎖定捲動;手機讓內容自然捲動,避免被裁切
+    const media = window.matchMedia("(min-width: 768px)");
+    const applyLock = () => {
+      if (media.matches) {
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.overflow = "hidden";
+        document.body.style.overscrollBehavior = "none";
+      } else {
+        document.documentElement.style.overflow = previousHtmlOverflow;
+        document.body.style.overflow = previousBodyOverflow;
+        document.body.style.overscrollBehavior = previousBodyOverscroll;
+      }
+    };
+    applyLock();
+    media.addEventListener("change", applyLock);
+
+    return () => {
+      media.removeEventListener("change", applyLock);
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscroll;
+    };
+  }, [isHomePage]);
 
   async function handleLogout() {
     await logout();
@@ -27,15 +60,15 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-white/70 bg-cream-50/85 backdrop-blur-xl">
+    <div className={isHomePage ? "flex min-h-[100dvh] flex-col md:h-[100dvh] md:min-h-0 md:overflow-hidden md:overscroll-none" : "flex min-h-screen flex-col"}>
+      <header className="sticky top-0 z-40 shrink-0 border-b border-white/70 bg-cream-50/85 backdrop-blur-xl">
         <div className="page-shell flex min-h-16 items-center justify-between gap-4 py-2">
-          <Link to="/" className="group flex items-center gap-3" onClick={() => setOpen(false)}>
-            <span className="grid size-10 place-items-center rounded-full bg-sage-600 text-white shadow-sm transition group-hover:rotate-6">
+          <Link to="/" className="group flex items-center gap-2 sm:gap-3" onClick={() => setOpen(false)}>
+            <span className="grid size-9 place-items-center rounded-full bg-sage-600 text-white shadow-sm transition group-hover:rotate-6 sm:size-10">
               <Heart size={18} fill="currentColor" />
             </span>
             <span>
-              <span className="block font-display text-xl font-semibold leading-none text-ink-900">Excel & Min</span>
+              <span className="block font-display text-lg font-semibold leading-none text-ink-900 sm:text-xl">Excel & Min</span>
               <span className="mt-1 block text-[10px] tracking-[0.13em] text-ink-700 sm:text-[11px]">{t("brandSubtitle")}</span>
             </span>
           </Link>
@@ -69,7 +102,7 @@ export default function Layout() {
             <LanguageSwitcher compact />
             <button
               type="button"
-              className="grid size-11 place-items-center rounded-full bg-white"
+              className="grid size-10 place-items-center rounded-full bg-white sm:size-11"
               onClick={() => setOpen((value) => !value)}
               aria-label={open ? "Close menu" : "Open menu"}
             >
@@ -111,15 +144,17 @@ export default function Layout() {
         )}
       </header>
 
-      <main><Outlet /></main>
+      <main className={isHomePage ? "flex flex-1 md:min-h-0 md:overflow-hidden" : "flex-1"}><Outlet /></main>
 
-      <footer className="mt-20 border-t border-white/70 py-10">
-        <div className="page-shell text-center text-sm text-ink-700">
-          <p className="font-display text-2xl text-ink-900">{settings.siteTitle}</p>
-          <p className="mt-2">{t("footerTagline")}</p>
-          <p className="mt-4 text-xs">{t("footerDisclaimer")}</p>
-        </div>
-      </footer>
+      {!isHomePage && (
+        <footer className="mt-20 border-t border-white/70 py-10">
+          <div className="page-shell text-center text-sm text-ink-700">
+            <p className="font-display text-2xl text-ink-900">{settings.siteTitle}</p>
+            <p className="mt-2">{t("footerTagline")}</p>
+            <p className="mt-4 text-xs">{t("footerDisclaimer")}</p>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

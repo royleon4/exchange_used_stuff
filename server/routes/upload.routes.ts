@@ -5,7 +5,7 @@ import sharp from "sharp";
 import { postImages } from "../../shared/schema.js";
 import { requireAuth } from "../auth.js";
 import { db } from "../db.js";
-import { uploadWebp } from "../integrations/google-drive/client.js";
+import { ensureSubfolder, uploadWebp } from "../integrations/google-drive/client.js";
 import { AppError } from "../middleware/error-handler.js";
 
 const router = Router();
@@ -26,6 +26,15 @@ router.post("/images", requireAuth, upload.array("images", 9), async (req, res) 
   const files = req.files as Express.Multer.File[] | undefined;
   if (!files?.length) throw new AppError(400, "IMAGE_REQUIRED", "請選擇至少一張圖片");
 
+  // 首頁主圖放在專屬子資料夾(限管理員),其餘貼文圖片留在根資料夾
+  let folderId: string | undefined;
+  if (req.query.purpose === "hero") {
+    if (req.user!.role !== "admin") {
+      throw new AppError(403, "FORBIDDEN", "只有管理員可以上傳首頁主圖");
+    }
+    folderId = await ensureSubfolder("首頁主圖");
+  }
+
   const uploaded: Array<{ id: number; url: string; width: number; height: number }> = [];
   for (const file of files) {
     const image = sharp(file.buffer, { failOn: "error" }).rotate();
@@ -40,7 +49,7 @@ router.post("/images", requireAuth, upload.array("images", 9), async (req, res) 
       .toBuffer({ resolveWithObject: true });
 
     const filename = `${crypto.randomUUID()}.webp`;
-    const driveFileId = await uploadWebp(processed.data, filename);
+    const driveFileId = await uploadWebp(processed.data, filename, folderId);
     const [record] = await db
       .insert(postImages)
       .values({
