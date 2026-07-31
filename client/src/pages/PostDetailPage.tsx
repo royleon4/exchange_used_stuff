@@ -2,34 +2,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Heart, MessageCircle, Pencil, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import type { PostComment, PostDetail, WantResult } from "../../../shared/types";
 import ImageCarousel from "../components/ImageCarousel";
 import { api, ApiError } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { useLanguage } from "../lib/i18n";
-
-type PostDetail = {
-  id: number;
-  authorId: number;
-  authorNickname: string;
-  title: string;
-  description: string;
-  itemStatus: "considering" | "bringing" | "not_bringing" | "closed";
-  commentsEnabled: boolean;
-  wantCount: number;
-  currentUserWants: boolean;
-  isOwner: boolean;
-  createdAt: string;
-  images: Array<{ id: number; url: string; width: number; height: number }>;
-};
-type Comment = { id: number; body: string; authorId: number; authorNickname: string; createdAt: string };
-type WantResult = { wanted: boolean; wantCount: number };
-
-const statusKey = {
-  considering: "statusConsidering",
-  bringing: "statusBringing",
-  not_bringing: "statusNotBringing",
-  closed: "statusClosed",
-} as const;
+import {
+  formatTaiwanDate,
+  formatTaiwanDateTime,
+  localeForLanguage,
+  POST_STATUS_TRANSLATION_KEYS,
+} from "../lib/post-presentation";
 
 export default function PostDetailPage() {
   const { id } = useParams();
@@ -44,7 +27,7 @@ export default function PostDetailPage() {
   });
   const commentsQuery = useQuery({
     queryKey: ["comments", id],
-    queryFn: () => api<{ comments: Comment[] }>(`/api/posts/${id}/comments`),
+    queryFn: () => api<{ comments: PostComment[] }>(`/api/posts/${id}/comments`),
   });
   const want = useMutation({
     mutationFn: async (nextWanted: boolean) => api<WantResult>(`/api/posts/${id}/want`, {
@@ -89,7 +72,7 @@ export default function PostDetailPage() {
   if (postQuery.isLoading) return <div className="page-shell py-20 text-center">{t("loading")}</div>;
   if (!postQuery.data) return <div className="page-shell py-20 text-center">{t("postNotFound")}</div>;
   const post = postQuery.data.post;
-  const locale = language === "zh" ? "zh-TW" : "en-US";
+  const locale = localeForLanguage(language);
   const carouselImages = post.images.map((image, index) => ({
     id: image.id,
     url: image.url,
@@ -117,9 +100,11 @@ export default function PostDetailPage() {
           <div className="card p-6 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <span className="rounded-full bg-sage-50 px-3 py-1 text-xs font-semibold text-sage-700">
-                {t(statusKey[post.itemStatus])}
+                {t(POST_STATUS_TRANSLATION_KEYS[post.itemStatus])}
               </span>
-              <span className="text-xs text-ink-700">{new Date(post.createdAt).toLocaleDateString(locale)}</span>
+              <time dateTime={post.createdAt} className="text-xs text-ink-700">
+                {formatTaiwanDate(post.createdAt, locale)}
+              </time>
             </div>
             <p className="eyebrow mt-6">{post.authorNickname}</p>
             <h1 className="mt-2 font-display text-4xl font-semibold leading-tight">{post.title}</h1>
@@ -148,7 +133,7 @@ export default function PostDetailPage() {
                 <div key={comment.id} className="rounded-2xl bg-cream-50 p-4">
                   <div className="flex justify-between gap-4 text-xs text-ink-700">
                     <strong className="text-sage-700">{comment.authorNickname}</strong>
-                    <span>{new Date(comment.createdAt).toLocaleString(locale)}</span>
+                    <time dateTime={comment.createdAt}>{formatTaiwanDateTime(comment.createdAt, locale)}</time>
                   </div>
                   <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{comment.body}</p>
                 </div>
