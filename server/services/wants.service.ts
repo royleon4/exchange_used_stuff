@@ -1,12 +1,8 @@
+import type { WantResult } from "../../shared/types.js";
 import type { PoolClient } from "pg";
 import { pool } from "../db.js";
 
 const WANT_LOCK_NAMESPACE = 20260722;
-
-export type WantResult = {
-  wanted: boolean;
-  wantCount: number;
-};
 
 async function lockPostWant(client: PoolClient, postId: number): Promise<void> {
   await client.query("SELECT pg_advisory_xact_lock($1, $2)", [WANT_LOCK_NAMESPACE, postId]);
