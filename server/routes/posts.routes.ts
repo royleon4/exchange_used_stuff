@@ -7,6 +7,7 @@ import { optionalAuth, requireAuth } from "../auth.js";
 import { db, pool } from "../db.js";
 import { AppError } from "../middleware/error-handler.js";
 import { serializePostCard, type PostCardRow } from "../post-card.js";
+import { updatePostForActor } from "../services/posts.service.js";
 
 const router = Router();
 
@@ -175,20 +176,16 @@ router.post("/", requireAuth, async (req, res) => {
 
 router.patch("/:id", requireAuth, async (req, res) => {
   const id = Number(req.params.id);
-  const input = updatePostSchema.parse(req.body);
-  const [existing] = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
-  if (!existing || existing.deletedAt) throw new AppError(404, "POST_NOT_FOUND", "找不到這篇貼文");
-  if (existing.authorId !== req.user!.id && req.user!.role !== "admin") {
-    throw new AppError(403, "FORBIDDEN", "只能修改自己的貼文");
-  }
+  if (!Number.isInteger(id) || id <= 0) throw new AppError(400, "INVALID_POST_ID", "貼文編號不正確");
 
-  const { imageIds: _imageIds, ...changes } = input;
-  const [updated] = await db
-    .update(posts)
-    .set({ ...changes, updatedAt: new Date() })
-    .where(eq(posts.id, id))
-    .returning();
-  res.json({ post: updated });
+  const changes = updatePostSchema.parse(req.body);
+  const post = await updatePostForActor({
+    postId: id,
+    actor: req.user!,
+    changes,
+  });
+
+  res.json({ post });
 });
 
 router.delete("/:id", requireAuth, async (req, res) => {
