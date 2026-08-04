@@ -83,6 +83,10 @@ describe("post validation", () => {
     expect(() => createPostSchema.parse({ ...base, imageIds: Array.from({ length: 10 }, (_, i) => i + 1) })).toThrow();
   });
 
+  it("rejects duplicate image ids", () => {
+    expect(() => createPostSchema.parse({ ...base, imageIds: [1, 1] })).toThrow();
+  });
+
   it("requires a title of at least three characters", () => {
     expect(() => createPostSchema.parse({ ...base, title: "杯子", imageIds: [1] })).toThrow();
   });

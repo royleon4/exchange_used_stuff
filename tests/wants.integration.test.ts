@@ -5,21 +5,26 @@ const describeDatabase = databaseAvailable ? describe.sequential : describe.skip
 
 type PoolType = typeof import("../server/db.js")["pool"];
 type WantService = typeof import("../server/services/wants.service.js");
+type PostService = typeof import("../server/services/posts.service.js");
 
 let pool: PoolType;
 let wants: WantService;
+let postsService: PostService;
 let ownerUserId = 0;
 let userId = 0;
 let postId = 0;
 
-describeDatabase("post want database integrity", () => {
+describeDatabase("database-backed post and want integrity", () => {
   beforeAll(async () => {
     ({ pool } = await import("../server/db.js"));
     wants = await import("../server/services/wants.service.js");
+    postsService = await import("../server/services/posts.service.js");
   });
 
   beforeEach(async () => {
-    await pool.query("TRUNCATE TABLE post_wants, comments, post_images, posts, users RESTART IDENTITY CASCADE");
+    await pool.query(
+      "TRUNCATE TABLE image_cleanup_jobs, post_wants, comments, post_images, posts, users RESTART IDENTITY CASCADE",
+    );
 
     const users = await pool.query<{ id: number; username: string }>(
       `INSERT INTO users (username, password_hash, nickname)
@@ -152,5 +157,104 @@ describeDatabase("post want database integrity", () => {
       [ownPostId],
     );
     expect(Number(rows.rows[0]!.count)).toBe(0);
+  });
+
+  it("updates a member's post content and attached images in one transaction", async () => {
+    const images = await pool.query<{ id: number; drive_file_id: string }>(
+      `INSERT INTO post_images
+         (post_id, owner_id, drive_file_id, mime_type, size_bytes, width, height, sort_order)
+       VALUES
+         ($1, $2, 'existing-cover', 'image/webp', 100, 800, 600, 0),
+         ($1, $2, 'existing-remove', 'image/webp', 100, 800, 600, 1),
+         (NULL, $2, 'new-upload', 'image/webp', 100, 800, 600, 0)
+       RETURNING id, drive_file_id`,
+      [postId, ownerUserId],
+    );
+    const firstImageId = images.rows.find((row) => row.drive_file_id === "existing-cover")!.id;
+    const removedImageId = images.rows.find((row) => row.drive_file_id === "existing-remove")!.id;
+    const newImageId = images.rows.find((row) => row.drive_file_id === "new-upload")!.id;
+
+    const updated = await postsService.updatePostForActor({
+      postId,
+      actor: { id: ownerUserId, nickname: "Post Owner", role: "user" },
+      changes: {
+        title: "更新後的物品標題",
+        description: "更新後的描述",
+        commentsEnabled: false,
+        itemStatus: "bringing",
+        imageIds: [newImageId, firstImageId],
+      },
+    });
+
+    expect(updated).toMatchObject({
+      id: postId,
+      title: "更新後的物品標題",
+      description: "更新後的描述",
+      commentsEnabled: false,
+      itemStatus: "bringing",
+    });
+
+    const attachedImages = await pool.query<{ id: number; post_id: number | null; sort_order: number }>(
+      `SELECT id, post_id, sort_order
+       FROM post_images
+       WHERE post_id = $1
+       ORDER BY sort_order`,
+      [postId],
+    );
+    expect(attachedImages.rows).toEqual([
+      { id: newImageId, post_id: postId, sort_order: 0 },
+      { id: firstImageId, post_id: postId, sort_order: 1 },
+    ]);
+
+    const removedImage = await pool.query<{ count: string }>(
+      "SELECT COUNT(*)::text AS count FROM post_images WHERE id = $1",
+      [removedImageId],
+    );
+    expect(Number(removedImage.rows[0]!.count)).toBe(0);
+
+    const cleanup = await pool.query<{ drive_file_id: string; reason: string }>(
+      "SELECT drive_file_id, reason FROM image_cleanup_jobs",
+    );
+    expect(cleanup.rows).toEqual([
+      { drive_file_id: "existing-remove", reason: `owner_edited_post:${postId}` },
+    ]);
+  });
+
+  it("rejects another user's image without changing the post", async () => {
+    const images = await pool.query<{ id: number; drive_file_id: string }>(
+      `INSERT INTO post_images
+         (post_id, owner_id, drive_file_id, mime_type, size_bytes, width, height, sort_order)
+       VALUES
+         ($1, $2, 'owner-image', 'image/webp', 100, 800, 600, 0),
+         (NULL, $3, 'foreign-image', 'image/webp', 100, 800, 600, 0)
+       RETURNING id, drive_file_id`,
+      [postId, ownerUserId, userId],
+    );
+    const ownerImageId = images.rows.find((row) => row.drive_file_id === "owner-image")!.id;
+    const foreignImageId = images.rows.find((row) => row.drive_file_id === "foreign-image")!.id;
+
+    await expect(
+      postsService.updatePostForActor({
+        postId,
+        actor: { id: ownerUserId, nickname: "Post Owner", role: "user" },
+        changes: {
+          title: "不應該被儲存的標題",
+          imageIds: [ownerImageId, foreignImageId],
+        },
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_IMAGES" });
+
+    const post = await pool.query<{ title: string }>("SELECT title FROM posts WHERE id = $1", [postId]);
+    expect(post.rows[0]!.title).toBe("測試物品標題");
+  });
+
+  it("does not allow another member to edit the post", async () => {
+    await expect(
+      postsService.updatePostForActor({
+        postId,
+        actor: { id: userId, nickname: "Want Tester", role: "user" },
+        changes: { title: "其他人修改的標題" },
+      }),
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 });
