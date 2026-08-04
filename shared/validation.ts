@@ -51,6 +51,11 @@ export const userRoleSchema = z.enum(["user", "admin"]);
 
 const postTitleSchema = z.string().trim().min(3, "標題至少 3 個字").max(40, "標題最多 40 個字");
 const postDescriptionSchema = z.string().trim();
+const postImageIdsSchema = z
+  .array(z.number().int().positive())
+  .min(1, "至少需要 1 張圖片")
+  .max(9, "最多 9 張圖片")
+  .refine((imageIds) => new Set(imageIds).size === imageIds.length, "圖片不可重複");
 const hexColorSchema = z
   .string()
   .trim()
@@ -61,7 +66,7 @@ export const createPostSchema = z.object({
   description: postDescriptionSchema.default(""),
   commentsEnabled: z.boolean().default(true),
   itemStatus: itemStatusSchema.default("considering"),
-  imageIds: z.array(z.number().int().positive()).min(1, "至少需要 1 張圖片").max(9, "最多 9 張圖片"),
+  imageIds: postImageIdsSchema,
 });
 
 export const updatePostSchema = createPostSchema.partial().refine(
